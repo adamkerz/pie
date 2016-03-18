@@ -5,9 +5,13 @@ Great for bootstrapping a development environment, and then interacting with it.
 """
 __VERSION__='0.0.1'
 
-
+import sys,os
+import subprocess
 from functools import wraps
 
+
+WINDOWS=(os.name=='nt')
+PY3=(sys.version_info>=(3,0))
 
 
 """
@@ -57,7 +61,7 @@ def task(parameters=[]):
 Executes a system command
 """
 def cmd(c):
-    subprocess.call(c)
+    subprocess.call(c,shell=True)
 
 
 """
@@ -85,3 +89,15 @@ class venv(object):
             pass
         else:
             raise Exception('I dunno')# TODO
+
+
+
+if __name__=='__main__':
+    
+    if WINDOWS:
+        with open('pie.bat','w') as fout:
+            fout.write('@echo off\npython -m pie %*\n')
+    else:
+        with open('pie','w') as fout:
+            fout.write('python -m pie %*\n')
+
