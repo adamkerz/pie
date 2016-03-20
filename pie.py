@@ -5,8 +5,9 @@ Great for bootstrapping a development environment, and then interacting with it.
 """
 __VERSION__='0.0.1'
 
-import sys,os
+import os
 import subprocess
+import sys
 from functools import wraps
 
 
@@ -37,6 +38,12 @@ context is used to keep track of what context a command is being executed within
         cmd('python -m pip')
 """
 context=Lookup()
+
+
+"""
+tasks is a dictionary of registered tasks, where key=name. Tasks are possibly from within submodules where name=module.task.
+"""
+tasks={}
 
 
 """
@@ -90,10 +97,59 @@ class venv(object):
         else:
             raise Exception('I dunno')# TODO
 
+class Argument(object):
+    def __init__(self,type):
+        self.type=type
+
+    def execute(self):
+        raise NotImplemented()
+
+
+class Option(Argument):
+    def __init__(self,name,value):
+        super(Option,self).__init__('option')
+        self.name=name
+        self.value=value
+
+    def execute(self):
+        options[self.name]=self.value
+
+
+class Task(Argument):
+    def __init__(self,name,args=[],kwargs={}):
+        super(Option,self).__init__('task')
+        self.name=name
+        self.args=args
+        self.kwargs=kwargs
+
+    def execute(self):
+        # TODO: check task arg requirements and prompt - OR - can this be done by the @task decorator?
+        tasks[self.name](*self.args,**self.kwargs)
+
+
+def parseArguments(args):
+    # skip the name of the command
+    i=1
+    parsed=[]
+    while i<len(args):
+        arg=args[i]
+        if arg=='-o':
+            name,value=args[i+1].split('=')
+            parsed.append(Option(name,value))
+            i+=1
+        else:
+            parsed.append(Task(arg))
+        i+=1
+    return parsed
+
+
+def main(args):
+    print(parseArguments(args))
 
 
 if __name__=='__main__':
-    
+    main(sys.argv)
+
     if WINDOWS:
         with open('pie.bat','w') as fout:
             fout.write('@echo off\npython -m pie %*\n')
