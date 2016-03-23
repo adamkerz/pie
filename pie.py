@@ -42,7 +42,7 @@ options=Lookup()
 # context is used to keep track of what context a command is being executed within.
 #     with venv('venv/build'):
 #         cmd('python -m pip')
-context=Lookup()
+context=[]
 
 
 
@@ -102,7 +102,11 @@ def cmd(c):
     """
     Executes a system command
     """
-    subprocess.call(c,shell=True)
+    # apply any contexts
+    cc=c
+    for i in reversed(context):
+        cc=i.modifyCmd(cc)
+    subprocess.call(cc,shell=True)
 
 
 def pip(c,pythonCmd='python'):
@@ -119,17 +123,20 @@ class venv(object):
     def __init__(self,path):
         self.path=path
 
+    def modifyCmd(self,cmd):
+        if WINDOWS:
+            return r'{}\Scripts\activate.bat && {}'.format(self.path,cmd)
+        else:
+            return r'{}/bin/activate && {}'.format(self.path,cmd)
+
     # make this a context manager
     def __enter__(self):
-        # push onto pie.context
+        context.append(self)
         return self
 
     def __exit__(self,exc_type,exc_value,traceback):
-        # pop from pie.context
-        if exc_type is None:
-            pass
-        else:
-            raise Exception('I dunno')# TODO
+        context.pop()
+        # we don't care about an exception
 
 
 
