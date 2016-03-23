@@ -163,10 +163,10 @@ class CreateBatchFile(Argument):
     def execute(self):
         if WINDOWS:
             with open('pie.bat','w') as fout:
-                fout.write('@echo off\npython -c "import pie; pie.main()" %*\n')
+                fout.write('@echo off\npython -m pie %*\n')
         else:
             with open('pie','w') as fout:
-                fout.write('python -c "import pie; pie.main()" %*\n')
+                fout.write('python -m pie %*\n')
 
 
 class ListTasks(Argument):
