@@ -57,7 +57,7 @@ def task(parameters=[]):
     """
     def decorator(taskFn):
         # register the task
-        tasks[taskFn.__name__]=taskFn
+        tasks[taskFn.__name__]={'fn':taskFn,'desc':taskFn.__doc__}
         # then wrap the function
         @wraps(taskFn)
         def wrapper(*args,**kwargs):
@@ -112,17 +112,18 @@ class venv(object):
 # ----------------------------------------
 class Argument(object):
     def execute(self):
-        print(str(self))
-        # raise NotImplemented()
+        raise NotImplemented()
+
+    def __repr__(self):
+        return self.__class__.__name__
 
 
 class Version(Argument):
     def execute(self):
         print('pie v{}'.format(__VERSION__))
 
-    def __str__(self):
+    def __repr__(self):
         return 'Version: {}'.format(__VERSION__)
-    __repr__=__str__
 
 
 class CreateBatchFile(Argument):
@@ -134,25 +135,33 @@ class CreateBatchFile(Argument):
             with open('pie','w') as fout:
                 fout.write('python -c "import pie; pie.main()" %*\n')
 
-    def __str__(self):
-        return 'CreateBatchFile'
-    __repr__=__str__
+
+class ListTasks(Argument):
+    def __init__(self,includeDescription=True):
+        self.includeDescription=includeDescription
+
+    def execute(self):
+        for k in sorted(tasks.keys()):
+            v=tasks[k]
+            if self.includeDescription:
+                desc=v['desc'] or ''
+                print('{:30} {:.70}'.format(k,desc.replace('\n',' ')))
+            else:
+                print(k)
 
 
 class Help(Argument):
     def execute(self):
-        print('Usage:  pie -v | -h | -b | {-o name=value | task[(args...)]}')
+        print('Usage:  pie -v | -h | -b | -l | {-o name=value | task[(args...)]}')
         print('Version: v{}'.format(__VERSION__))
         print('')
         print('  -v    Display version')
         print('  -h    Display this help')
         print('  -b    Create batch file shortcut')
+        print('  -l    List available tasks with description')
+        print('  -L    List available tasks with name only')
         print('  -o    Sets an option with name to value')
         print('  task  Runs a task passing through arguments if required')
-
-    def __str__(self):
-        return 'Help'
-    __repr__=__str__
 
 
 class Option(Argument):
@@ -163,10 +172,8 @@ class Option(Argument):
     def execute(self):
         setattr(options,self.name,self.value)
 
-
-    def __str__(self):
+    def __repr__(self):
         return 'Option: {}={}'.format(self.name,self.value)
-    __repr__=__str__
 
 
 class Task(Argument):
@@ -179,9 +186,8 @@ class Task(Argument):
         # TODO: check task arg requirements and prompt - OR - can this be done by the @task decorator?
         tasks[self.name](*self.args,**self.kwargs)
 
-    def __str__(self):
+    def __repr__(self):
         return 'Task: {}(args={},kwargs={})'.format(self.name,self.args,self.kwargs)
-    __repr__=__str__
 
 
 
@@ -195,16 +201,24 @@ def parseArguments(args):
     parsed=[]
     while i<len(args):
         arg=args[i]
-        if arg=='-v':
-            parsed.append(Version())
-        elif arg=='-h':
-            parsed.append(Help())
-        elif arg=='-b':
-            parsed.append(CreateBatchFile())
-        elif arg=='-o':
-            name,value=args[i+1].split('=')
-            parsed.append(Option(name,value))
-            i+=1
+        if arg.startswith('-'):
+            # although we say that these options are check that incompatible options aren't used together
+            if arg=='-v':
+                parsed.append(Version())
+            elif arg=='-h':
+                parsed.append(Help())
+            elif arg=='-b':
+                parsed.append(CreateBatchFile())
+            elif arg=='-l':
+                parsed.append(ListTasks())
+            elif arg=='-L':
+                parsed.append(ListTasks(includeDescription=False))
+            elif arg=='-o':
+                name,value=args[i+1].split('=')
+                parsed.append(Option(name,value))
+                i+=1
+            else:
+                raise Exception('Unknown ')
         else:
             mo=TASK_RE.match(arg)
             if mo:
@@ -228,6 +242,7 @@ def main():
         import pie_tasks
         for a in args:
             a.execute()
+            # print(repr(a))
     else:
         Help().execute()
 
