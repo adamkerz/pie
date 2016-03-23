@@ -12,8 +12,13 @@ import sys
 from functools import wraps
 
 
+# environment constants
 WINDOWS=(os.name=='nt')
 PY3=(sys.version_info>=(3,0))
+
+# the function used to prompt for input
+PROMPT_FN=input if PY3 else raw_input
+
 
 
 # ----------------------------------------
@@ -56,14 +61,36 @@ def task(parameters=[]):
          conversionFn - a function that will take a string and convert it to the desired type
     """
     def decorator(taskFn):
-        # register the task
-        tasks[taskFn.__name__]={'fn':taskFn,'desc':taskFn.__doc__,'params':parameters}
-        # then wrap the function
+        # wrap the function
         @wraps(taskFn)
         def wrapper(*args,**kwargs):
+            # args might be a tuple, but we want to append to it
+            args=list(args)
             # go through parameters and make sure they're all there, otherwise inject or prompt for them
+            for i,p in enumerate(parameters):
+                if len(args)<=i:
+                    # TODO: use a default value if provided - would be best to use the default value as provided with the function definition, rather than add a 'default' key in parameters dicts.
+                    # prompt for a missing value
+                    promptStr=p['prompt'] if 'prompt' in p else 'Please enter a value for {}: '.format(p['name'])
+                    v=PROMPT_FN(promptStr)
+                    args.append(v)
+                # and apply the conversionFn
+                if 'conversionFn' in p: args[i]=p['conversionFn'](args[i])
             return taskFn(*args,**kwargs)
+
+        # then register the task
+        tasks[taskFn.__name__]={'fn':wrapper,'desc':taskFn.__doc__,'params':parameters}
         return wrapper
+
+    # check in case we were called as a decorator eg. @task (without the function call)
+    if callable(parameters):
+        # this means that parameters is actually the function to decorate
+        taskFn=parameters
+        # but parameters is used in the wrapper and assumed to be a list, so set it as an empty list (as we weren't provided any parameters)
+        parameters=[]
+        return decorator(taskFn)
+
+    # otherwise return the decorator function
     return decorator
 
 
@@ -185,8 +212,7 @@ class Task(Argument):
         self.kwargs=kwargs
 
     def execute(self):
-        # TODO: check task arg requirements and prompt - OR - can this be done by the @task decorator?
-        tasks[self.name](*self.args,**self.kwargs)
+        tasks[self.name]['fn'](*self.args,**self.kwargs)
 
     def __repr__(self):
         return 'Task: {}(args={},kwargs={})'.format(self.name,self.args,self.kwargs)
