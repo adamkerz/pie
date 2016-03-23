@@ -78,11 +78,11 @@ def cmd(c):
     subprocess.call(c,shell=True)
 
 
-def pip(c):
+def pip(c,pythonCmd='python'):
     """
     Runs a pip command
     """
-    cmd('python -m pip {}'.format(c))
+    cmd('{} -m pip {}'.format(pythonCmd,c))
 
 
 class venv(object):
