@@ -57,12 +57,11 @@ def task(parameters=[]):
     """
     def decorator(taskFn):
         # register the task
-        tasks[taskFn.__name__]={'fn':taskFn,'desc':taskFn.__doc__}
+        tasks[taskFn.__name__]={'fn':taskFn,'desc':taskFn.__doc__,'params':parameters}
         # then wrap the function
         @wraps(taskFn)
         def wrapper(*args,**kwargs):
             # go through parameters and make sure they're all there, otherwise inject or prompt for them
-
             return taskFn(*args,**kwargs)
         return wrapper
     return decorator
@@ -152,16 +151,19 @@ class ListTasks(Argument):
 
 class Help(Argument):
     def execute(self):
-        print('Usage:  pie -v | -h | -b | -l | {-o name=value | task[(args...)]}')
-        print('Version: v{}'.format(__VERSION__))
+        print('Usage:    pie [ -v | -h | -b | -l | -L ]')
+        print('          pie [ -o <name>=<value> | <task>[(<args>...)] ]...')
+        print('Version:  v{}'.format(__VERSION__))
         print('')
-        print('  -v    Display version')
-        print('  -h    Display this help')
-        print('  -b    Create batch file shortcut')
-        print('  -l    List available tasks with description')
-        print('  -L    List available tasks with name only')
-        print('  -o    Sets an option with name to value')
-        print('  task  Runs a task passing through arguments if required')
+        print('  -v      Display version')
+        print('  -h      Display this help')
+        print('  -b      Create batch file shortcut')
+        print('  -l      List available tasks with description')
+        print('  -L      List available tasks with name only')
+        print('  -o      Sets an option with name to value')
+        print('  <task>  Runs a task passing through arguments if required')
+        print('')
+        print('The order of -o and <task> options matters - each will be executed in the order given on the command line.')
 
 
 class Option(Argument):
