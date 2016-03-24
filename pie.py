@@ -106,6 +106,7 @@ def task(parameters=[]):
     return decorator
 
 
+alreadyTraversed=set()
 def registerTasksInModule(modulePath,module):
     """Recursively traverse through modules, registering tasks"""
     modulePrefix=(modulePath+'.' if modulePath else '')
@@ -116,7 +117,10 @@ def registerTasksInModule(modulePath,module):
             # there is a situation where a module in a package that is imported into another module (so, doubly nested tasks) will also show up at the package level, even though it's not imported there
             # eg. pie_tasks/__init__.py does "from . import submodule", submodule does "from . import doubleNest", but this also causes doubleNest to show up in pie_tasks
             # I can't figure out any way to distinguish the difference, but, at the moment, I think it's an obscure enough situation to not worry about yet
-            registerTasksInModule(modulePrefix+k,v)
+            # Actually, we have to keep a list of modules we've traversed so that we don't recurse forever (circular imports), this will remove the above problem, but may not fix it correctly...
+            if v not in alreadyTraversed:
+                alreadyTraversed.add(v)
+                registerTasksInModule(modulePrefix+k,v)
 
 
 def importTasks(moduleName='pie_tasks'):
@@ -284,7 +288,7 @@ def parseArguments(args):
                 parsed.append(Option(name,value))
                 i+=1
             else:
-                raise Exception('Unknown ')
+                raise Exception('Unknown argument: {}'.format(arg))
         else:
             mo=TASK_RE.match(arg)
             if mo:
