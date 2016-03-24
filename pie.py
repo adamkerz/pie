@@ -196,12 +196,13 @@ class Version(Argument):
 
 class CreateBatchFile(Argument):
     def execute(self):
+        pythonExe=sys.executable
         if WINDOWS:
             with open('pie.bat','w') as fout:
-                fout.write('@echo off\npython -m pie %*\n')
+                fout.write('@echo off\n"{}" -m pie %*\n'.format(pythonExe))
         else:
             with open('pie','w') as fout:
-                fout.write('python -m pie %*\n')
+                fout.write('"{}" -m pie %*\n'.format(pythonExe))
 
 
 class ListTasks(Argument):
