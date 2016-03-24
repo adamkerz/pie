@@ -1,5 +1,7 @@
 from pie import *
 
+import inModule
+
 
 @task()
 def asdf(v):
