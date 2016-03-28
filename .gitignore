@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 
+/pie.bat
 /build/
 /dist/
 /pie.egg-info/
