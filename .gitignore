@@ -1,7 +1,14 @@
 __pycache__/
 *.py[cod]
 
+# generated file
 /pie.bat
+# pie.py is copied to run tests
+/test/**/pie.py
+# pytest generated dir
+/test/.cache/
+# standard generated dirs
+/venvs/
 /build/
 /dist/
 /pie.egg-info/
