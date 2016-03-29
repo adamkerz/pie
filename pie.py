@@ -179,6 +179,9 @@ class venv(object):
 # Command line functionality
 # ----------------------------------------
 class Argument(object):
+    # a flag to indicate that tasks must be imported to execute this argument
+    needsTasksImported=False
+
     def execute(self):
         raise NotImplemented()
 
@@ -206,6 +209,8 @@ class CreateBatchFile(Argument):
 
 
 class ListTasks(Argument):
+    needsTasksImported=True
+
     def __init__(self,includeDescription=True):
         self.includeDescription=includeDescription
 
@@ -249,6 +254,8 @@ class Option(Argument):
 
 
 class TaskCall(Argument):
+    needsTasksImported=True
+
     def __init__(self,name,args=[],kwargs={}):
         self.name=name
         self.args=args
@@ -310,8 +317,12 @@ def parseArguments(args):
 def main():
     args=parseArguments(sys.argv)
     if args:
-        importTasks()
+        tasksImported=False
         for a in args:
+            # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
+            if a.needsTasksImported and not tasksImported:
+                importTasks()
+                tasksImported=True
             a.execute()
             # print(repr(a))
     else:
