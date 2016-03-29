@@ -314,8 +314,8 @@ def parseArguments(args):
 # ----------------------------------------
 # entry point
 # ----------------------------------------
-def main():
-    args=parseArguments(sys.argv)
+def main(args):
+    args=parseArguments(args)
     if args:
         tasksImported=False
         for a in args:
@@ -332,4 +332,4 @@ def main():
 if __name__=='__main__':
     # import pie so that both we and any pie_tasks code that imports pie are referring to the same module variables
     import pie
-    pie.main()
+    pie.main(sys.argv)
