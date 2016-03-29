@@ -14,7 +14,7 @@ import types
 from functools import wraps
 
 
-__all__=['task','cmd','pip','venv']
+__all__=['task','options','cmd','pip','venv']
 
 
 # environment constants
