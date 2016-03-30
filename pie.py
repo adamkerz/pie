@@ -276,8 +276,7 @@ class TaskCall(Argument):
 # ----------------------------------------
 TASK_RE=re.compile(r'(?P<name>[^()]+)(\((?P<args>.*)\))?')
 def parseArguments(args):
-    # skip the name of the command
-    i=1
+    i=0
     parsed=[]
     while i<len(args):
         arg=args[i]
@@ -334,4 +333,5 @@ def main(args):
 if __name__=='__main__':
     # import pie so that both we and any pie_tasks code that imports pie are referring to the same module variables
     import pie
-    pie.main(sys.argv)
+    # skip the name of the command
+    pie.main(sys.argv[1:])
