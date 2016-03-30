@@ -1,9 +1,11 @@
+from __future__ import print_function
 """
 pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
 __VERSION__='0.0.1'
+
 
 import inspect
 import os
@@ -21,8 +23,8 @@ __all__=['task','options','cmd','pip','venv']
 WINDOWS=(os.name=='nt')
 PY3=(sys.version_info>=(3,0))
 
-# the function used to prompt for input
-PROMPT_FN=input if PY3 else raw_input
+# function for input (also so that we can mock it tests)
+INPUT_FN=input if PY3 else raw_input
 
 
 
@@ -76,7 +78,7 @@ class TaskWrapper(object):
                 # TODO: use a default value if provided - would be best to use the default value as provided with the function definition, rather than add a 'default' key in parameters dicts.
                 # prompt for a missing argument
                 promptStr=p['prompt'] if 'prompt' in p else 'Please enter a value for {}: '.format(p['name'])
-                v=PROMPT_FN(promptStr)
+                v=INPUT_FN(promptStr)
                 args.append(v)
             # and apply the conversionFn
             if 'conversionFn' in p: args[i]=p['conversionFn'](args[i])
