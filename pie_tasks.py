@@ -5,23 +5,22 @@ from pie import *
 
 @task
 def setup():
-    createDirectories()
     createVenv()
     updateTestPackages()
 
 
 @task
 def createVenvs():
-    cmd(r'python -m virtualenv venvs\test')
+    venv(r'venvs\test').create()
 
 
 @task
 def updatePackages():
     with venv(r'venvs\test'):
         # update pip
-        pip(r'install -U -i http://sirpypi/packages/simple/ --trusted-host sirpypi pip')
+        pip(r'install -U pip')
         # and update other requirements
-        pip(r'install -U -i http://sirpypi/packages/simple/ --trusted-host sirpypi -r requirements.test.txt')
+        pip(r'install -U -r requirements.test.txt')
 
 
 @task

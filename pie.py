@@ -189,6 +189,12 @@ class venv(CmdContext):
     def __init__(self,path):
         self.path=path
 
+    def create(self,extraArguments=''):
+        if PY3:
+            c=r'python -m venv {} {}'.format(extraArguments,self.path)
+        else:
+            c=r'python -m virtualenv {} {}'.format(extraArguments,self.path)
+        cmd(c)
 
     def cmd(self,c):
         if WINDOWS:
