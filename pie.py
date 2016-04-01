@@ -286,16 +286,18 @@ class Option(Argument):
 class TaskCall(Argument):
     needsTasksImported=True
 
+    class TaskNotFound(Exception):
+        def __init__(self,name):
+            self.name=name
+
     def __init__(self,name,args=[],kwargs={}):
         self.name=name
         self.args=args
         self.kwargs=kwargs
 
     def execute(self):
-        if self.name in tasks:
-            tasks[self.name](*self.args,**self.kwargs)
-            return True
-        return False
+        if self.name in tasks: tasks[self.name](*self.args,**self.kwargs)
+        else: raise self.TaskNotFound(self.name)
 
     def __repr__(self):
         return 'Task: {}(args={},kwargs={})'.format(self.name,self.args,self.kwargs)
@@ -357,8 +359,11 @@ def main(args):
                     print('pie_tasks could not be found.')
                     break
                 tasksImported=True
-            if not a.execute():
-                print('Task missing could not be found.')
+            # try to execute the arg
+            try:
+                a.execute()
+            except TaskCall.TaskNotFound as e:
+                print('Task {} could not be found.'.format(e.name))
                 break
             # print(repr(a))
     else:
