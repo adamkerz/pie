@@ -5,8 +5,8 @@ from pie import *
 
 @task
 def setup():
-    createVenv()
-    updateTestPackages()
+    createVenvs()
+    updatePackages()
 
 
 @task
