@@ -25,6 +25,8 @@ PY3=(sys.version_info>=(3,0))
 
 # function for input (also so that we can mock it tests)
 INPUT_FN=input if PY3 else raw_input
+# function to execute a command - must emulate the subprocess call method
+CMD_FN=subprocess.call
 
 
 
@@ -44,12 +46,6 @@ class Lookup(object):
 
 # options is a lookup object where predefined options (in code) can be placed, as well as provided on the command line.
 options=Lookup()
-
-
-# context is used to keep track of what context a command is being executed within.
-#     with venv('venv/build'):
-#         cmd('python -m pip')
-context=[]
 
 
 
@@ -139,45 +135,67 @@ def importTasks(moduleName='pie_tasks'):
 # ----------------------------------------
 # operations
 # ----------------------------------------
+class CmdContextManager(object):
+    """
+    The CmdContextManager (singleton) is used to keep track of what context a command is being executed within:
+
+        with venv('venv/build'):
+            cmd('python -m pip')
+    """
+    context=[]
+
+    @classmethod
+    def enter(cls,ctx):
+        cls.context.append(ctx)
+        return len(cls.context)-1
+
+    @classmethod
+    def cmd(cls,c,i=None):
+        if i is None: i=len(cls.context)
+        if i>0: return cls.context[i-1].cmd(c)
+        CMD_FN(c,shell=True)
+
+    @classmethod
+    def exit(cls):
+        cls.context.pop()
+
+
 def cmd(c):
-    """
-    Executes a system command
-    """
-    # apply any contexts
-    cc=c
-    for i in reversed(context):
-        cc=i.modifyCmd(cc)
-    subprocess.call(cc,shell=True)
+    """Executes a system command (within the current context)"""
+    return CmdContextManager.cmd(c)
 
 
 def pip(c,pythonCmd='python'):
-    """
-    Runs a pip command
-    """
+    """Runs a pip command"""
     cmd('{} -m pip {}'.format(pythonCmd,c))
 
 
-class venv(object):
+class CmdContext(object):
+    """Base class for all cmd context objects."""
+    # make this a context manager
+    def __enter__(self):
+        self.contextPosition=CmdContextManager.enter(self)
+        return self
+
+    def __exit__(self,exc_type,exc_value,traceback):
+        CmdContextManager.exit()
+        # we don't care about an exception
+
+
+class venv(CmdContext):
     """
     A context class used to execute commands within a virtualenv
     """
     def __init__(self,path):
         self.path=path
 
-    def modifyCmd(self,cmd):
+
+    def cmd(self,c):
         if WINDOWS:
-            return r'{}\Scripts\activate.bat && {}'.format(self.path,cmd)
+            c=r'{}\Scripts\activate.bat && {}'.format(self.path,c)
         else:
-            return r'{}/bin/activate && {}'.format(self.path,cmd)
-
-    # make this a context manager
-    def __enter__(self):
-        context.append(self)
-        return self
-
-    def __exit__(self,exc_type,exc_value,traceback):
-        context.pop()
-        # we don't care about an exception
+            c=r'{}/bin/activate && {}'.format(self.path,c)
+        return CmdContextManager.cmd(c,self.contextPosition)
 
 
 
