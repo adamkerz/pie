@@ -292,7 +292,10 @@ class TaskCall(Argument):
         self.kwargs=kwargs
 
     def execute(self):
-        tasks[self.name](*self.args,**self.kwargs)
+        if self.name in tasks:
+            tasks[self.name](*self.args,**self.kwargs)
+            return True
+        return False
 
     def __repr__(self):
         return 'Task: {}(args={},kwargs={})'.format(self.name,self.args,self.kwargs)
@@ -354,7 +357,9 @@ def main(args):
                     print('pie_tasks could not be found.')
                     break
                 tasksImported=True
-            a.execute()
+            if not a.execute():
+                print('Task missing could not be found.')
+                break
             # print(repr(a))
     else:
         Help().execute()
