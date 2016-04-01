@@ -192,9 +192,9 @@ class venv(CmdContext):
 
     def cmd(self,c):
         if WINDOWS:
-            c=r'{}\Scripts\activate.bat && {}'.format(self.path,c)
+            c=r'cmd /c "{}\Scripts\activate.bat && {}"'.format(self.path,c)
         else:
-            c=r'{}/bin/activate && {}'.format(self.path,c)
+            c=r'bash -c "{}/bin/activate && {}"'.format(self.path,c)
         return CmdContextManager.cmd(c,self.contextPosition)
 
 

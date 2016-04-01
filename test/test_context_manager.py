@@ -10,4 +10,4 @@ def test_venv_context(pie,pie_tasks_path):
     pie.main(['venvContext'])
     # TODO: only correct on Windows
     assert len(m.cmds)==1
-    assert m.cmds[0][0][0]==r'first\Scripts\activate.bat && second\Scripts\activate.bat && blah'
+    assert m.cmds[0][0][0]==r'cmd /c "first\Scripts\activate.bat && cmd /c "second\Scripts\activate.bat && blah""'
