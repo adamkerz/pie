@@ -127,8 +127,12 @@ def registerTasksInModule(modulePath,module):
 
 def importTasks(moduleName='pie_tasks'):
     """Import the pie_tasks module and register all tasks found"""
-    m=__import__(moduleName)
+    try:
+        m=__import__(moduleName)
+    except ImportError:
+        return False
     registerTasksInModule('',m)
+    return True
 
 
 
@@ -322,7 +326,9 @@ def main(args):
         for a in args:
             # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
             if a.needsTasksImported and not tasksImported:
-                importTasks()
+                if not importTasks():
+                    print('pie_tasks could not be found.')
+                    break
                 tasksImported=True
             a.execute()
             # print(repr(a))
