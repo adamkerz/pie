@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.0.1'
+__VERSION__='0.0.2'
 
 
 import inspect
@@ -25,6 +25,8 @@ PY3=(sys.version_info>=(3,0))
 
 # function for input (also so that we can mock it tests)
 INPUT_FN=input if PY3 else raw_input
+# function to execute a command - must emulate the subprocess call method
+CMD_FN=subprocess.call
 
 
 
@@ -44,12 +46,6 @@ class Lookup(object):
 
 # options is a lookup object where predefined options (in code) can be placed, as well as provided on the command line.
 options=Lookup()
-
-
-# context is used to keep track of what context a command is being executed within.
-#     with venv('venv/build'):
-#         cmd('python -m pip')
-context=[]
 
 
 
@@ -127,53 +123,85 @@ def registerTasksInModule(modulePath,module):
 
 def importTasks(moduleName='pie_tasks'):
     """Import the pie_tasks module and register all tasks found"""
-    m=__import__(moduleName)
+    try:
+        m=__import__(moduleName)
+    except ImportError:
+        return False
     registerTasksInModule('',m)
+    return True
 
 
 
 # ----------------------------------------
 # operations
 # ----------------------------------------
+class CmdContextManager(object):
+    """
+    The CmdContextManager (singleton) is used to keep track of what context a command is being executed within:
+
+        with venv('venv/build'):
+            cmd('python -m pip')
+    """
+    context=[]
+
+    @classmethod
+    def enter(cls,ctx):
+        cls.context.append(ctx)
+        return len(cls.context)-1
+
+    @classmethod
+    def cmd(cls,c,i=None):
+        if i is None: i=len(cls.context)
+        if i>0: return cls.context[i-1].cmd(c)
+        CMD_FN(c,shell=True)
+
+    @classmethod
+    def exit(cls):
+        cls.context.pop()
+
+
 def cmd(c):
-    """
-    Executes a system command
-    """
-    # apply any contexts
-    cc=c
-    for i in reversed(context):
-        cc=i.modifyCmd(cc)
-    subprocess.call(cc,shell=True)
+    """Executes a system command (within the current context)"""
+    return CmdContextManager.cmd(c)
 
 
 def pip(c,pythonCmd='python'):
-    """
-    Runs a pip command
-    """
+    """Runs a pip command"""
     cmd('{} -m pip {}'.format(pythonCmd,c))
 
 
-class venv(object):
+class CmdContext(object):
+    """Base class for all cmd context objects."""
+    # make this a context manager
+    def __enter__(self):
+        self.contextPosition=CmdContextManager.enter(self)
+        return self
+
+    def __exit__(self,exc_type,exc_value,traceback):
+        CmdContextManager.exit()
+        # we don't care about an exception
+
+
+class venv(CmdContext):
     """
     A context class used to execute commands within a virtualenv
     """
     def __init__(self,path):
         self.path=path
 
-    def modifyCmd(self,cmd):
-        if WINDOWS:
-            return r'{}\Scripts\activate.bat && {}'.format(self.path,cmd)
+    def create(self,extraArguments=''):
+        if PY3:
+            c=r'python -m venv {} {}'.format(extraArguments,self.path)
         else:
-            return r'{}/bin/activate && {}'.format(self.path,cmd)
+            c=r'python -m virtualenv {} {}'.format(extraArguments,self.path)
+        cmd(c)
 
-    # make this a context manager
-    def __enter__(self):
-        context.append(self)
-        return self
-
-    def __exit__(self,exc_type,exc_value,traceback):
-        context.pop()
-        # we don't care about an exception
+    def cmd(self,c):
+        if WINDOWS:
+            c=r'cmd /c "{}\Scripts\activate.bat && {}"'.format(self.path,c)
+        else:
+            c=r'bash -c "{}/bin/activate && {}"'.format(self.path,c)
+        return CmdContextManager.cmd(c,self.contextPosition)
 
 
 
@@ -258,13 +286,18 @@ class Option(Argument):
 class TaskCall(Argument):
     needsTasksImported=True
 
+    class TaskNotFound(Exception):
+        def __init__(self,name):
+            self.name=name
+
     def __init__(self,name,args=[],kwargs={}):
         self.name=name
         self.args=args
         self.kwargs=kwargs
 
     def execute(self):
-        tasks[self.name](*self.args,**self.kwargs)
+        if self.name in tasks: tasks[self.name](*self.args,**self.kwargs)
+        else: raise self.TaskNotFound(self.name)
 
     def __repr__(self):
         return 'Task: {}(args={},kwargs={})'.format(self.name,self.args,self.kwargs)
@@ -322,9 +355,16 @@ def main(args):
         for a in args:
             # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
             if a.needsTasksImported and not tasksImported:
-                importTasks()
+                if not importTasks():
+                    print('pie_tasks could not be found.')
+                    break
                 tasksImported=True
-            a.execute()
+            # try to execute the arg
+            try:
+                a.execute()
+            except TaskCall.TaskNotFound as e:
+                print('Task {} could not be found.'.format(e.name))
+                break
             # print(repr(a))
     else:
         Help().execute()
