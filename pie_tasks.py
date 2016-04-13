@@ -26,4 +26,4 @@ def updatePackages():
 @task
 def test():
     with venv(r'venvs\test'):
-        cmd(r'python -m pytest -s test')
+        cmd(r'python -m pytest -s tests')
