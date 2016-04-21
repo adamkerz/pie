@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import types
+import traceback
 from functools import wraps
 
 
@@ -128,12 +129,8 @@ def registerTasksInModule(modulePath,module):
 
 def importTasks(moduleName='pie_tasks'):
     """Import the pie_tasks module and register all tasks found"""
-    try:
-        m=__import__(moduleName)
-    except ImportError:
-        return False
+    m=__import__(moduleName)
     registerTasksInModule('',m)
-    return True
 
 
 
@@ -366,8 +363,14 @@ def main(args):
         for a in args:
             # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
             if a.needsTasksImported and not tasksImported:
-                if not importTasks():
-                    print('pie_tasks could not be found.')
+                try:
+                    importTasks()
+                except Exception as e:
+                    # pick up the specific case of not being able to find a pie_tasks module/package
+                    if e.message=='No module named pie_tasks':
+                        print('pie_tasks could not be found.')
+                    else:
+                        print('An error occurred when importing pie_tasks:\n'+traceback.format_exc())
                     break
                 tasksImported=True
             # try to execute the arg
