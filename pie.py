@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.0.2'
+__VERSION__='0.1.0'
 
 
 import inspect
@@ -65,6 +65,9 @@ class TaskWrapper(object):
         self.params=params
         self.desc=fn.__doc__
 
+        # parameters set when registering tasks
+        self.hidden=False
+
     def __call__(self,*args,**kwargs):
         # args might be a tuple, but we want to append to it
         args=list(args)
@@ -110,7 +113,9 @@ def registerTasksInModule(modulePath,module):
     modulePrefix=(modulePath+'.' if modulePath else '')
     for k,v in vars(module).items():
         if isinstance(v,TaskWrapper):
+            if k.startswith('_'): v.hidden=True
             tasks[modulePrefix+k]=v
+
         elif isinstance(v,types.ModuleType):
             # there is a situation where a module in a package that is imported into another module (so, doubly nested tasks) will also show up at the package level, even though it's not imported there
             # eg. pie_tasks/__init__.py does "from . import submodule", submodule does "from . import doubleNest", but this also causes doubleNest to show up in pie_tasks
@@ -247,6 +252,7 @@ class ListTasks(Argument):
     def execute(self):
         for k in sorted(tasks.keys()):
             v=tasks[k]
+            if v.hidden: continue
             if self.includeDescription:
                 desc=v.desc or ''
                 print('{:30} {:.70}'.format(k,desc.replace('\n',' ')))
