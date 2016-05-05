@@ -340,10 +340,10 @@ def parseArguments(args):
         else:
             mo=TASK_RE.match(arg)
             if mo:
-                args=mo.group('args')
-                args=args.split(',') if args else []
+                taskArgs=mo.group('args')
+                taskArgs=taskArgs.split(',') if taskArgs else []
                 # TODO: add further parsing to handle keyword arguments
-                parsed.append(TaskCall(mo.group('name'),args=args,kwargs={}))
+                parsed.append(TaskCall(mo.group('name'),args=taskArgs,kwargs={}))
             else:
                 raise Exception('Unknown task format: {}'.format(arg))
         i+=1
