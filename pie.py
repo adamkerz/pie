@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.1b'
+__VERSION__='0.1.2'
 
 
 import inspect
@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import traceback
 import types
 from functools import wraps
 
