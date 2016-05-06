@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.1'
+__VERSION__='0.1.2'
 
 
 import inspect
@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import traceback
 import types
 from functools import wraps
 
@@ -124,12 +125,8 @@ def registerTasksInModule(modulePath,module):
 
 def importTasks(moduleName='pie_tasks'):
     """Import the pie_tasks module and register all tasks found"""
-    try:
-        m=__import__(moduleName)
-    except ImportError:
-        return False
+    m=__import__(moduleName)
     registerTasksInModule('',m)
-    return True
 
 
 
@@ -230,14 +227,16 @@ class venv(CmdContext):
     def __init__(self,path):
         self.path=path
 
-    def create(self,extraArguments=''):
-        if PY3:
-            c=r'python -m venv {} {}'.format(extraArguments,self.path)
+    def create(self,extraArguments='',pythonCmd='python',py3=PY3):
+        """Creates a virutalenv by running the `pythonCmd` and adding `extraArguments` if required. `py3` is used to flag whether this python interpreter is py3 or not. Defaults to whatever the current python version is."""
+        if py3:
+            c=r'{} -m venv {} {}'.format(pythonCmd,extraArguments,self.path)
         else:
-            c=r'python -m virtualenv {} {}'.format(extraArguments,self.path)
+            c=r'{} -m virtualenv {} {}'.format(pythonCmd,extraArguments,self.path)
         cmd(c)
 
     def cmd(self,c):
+        """Runs the command `c` in this virtualenv."""
         if WINDOWS:
             c=r'cmd /c "{}\Scripts\activate.bat && {}"'.format(self.path,c)
         else:
@@ -270,13 +269,16 @@ class Version(Argument):
 
 class CreateBatchFile(Argument):
     def execute(self):
+        pythonHome=os.environ.get('PYTHONHOME','')
         pythonExe=sys.executable
         if WINDOWS:
+            envVars='set PYTHONHOME={0}\nset PATH={0};%PATH%\n'.format(pythonHome) if pythonHome else ''
             with open('pie.bat','w') as fout:
-                fout.write('@echo off\n"{}" -m pie %*\n'.format(pythonExe))
+                fout.write('@echo off\n{}"{}" -m pie %*\n'.format(envVars,pythonExe))
         else:
+            envVars='export PYTHONHOME={0}\nexport PATH={0}:$PATH\n'.format(pythonHome) if pythonHome else ''
             with open('pie','w') as fout:
-                fout.write('"{}" -m pie %*\n'.format(pythonExe))
+                fout.write('{}"{}" -m pie %*\n'.format(envVars,pythonExe))
 
 
 class ListTasks(Argument):
@@ -397,8 +399,14 @@ def main(args):
         for a in args:
             # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
             if a.needsTasksImported and not tasksImported:
-                if not importTasks():
-                    print('pie_tasks could not be found.')
+                try:
+                    importTasks()
+                except Exception as e:
+                    # pick up the specific case of not being able to find a pie_tasks module/package
+                    if isinstance(e,ImportError) and e.message=='No module named pie_tasks':
+                        print('pie_tasks could not be found.')
+                    else:
+                        print('An error occurred when importing pie_tasks:\n'+traceback.format_exc())
                     break
                 tasksImported=True
             # try to execute the arg
