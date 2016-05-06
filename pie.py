@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.0'
+__VERSION__='0.1.1'
 
 
 import inspect
@@ -16,7 +16,7 @@ import types
 from functools import wraps
 
 
-__all__=['task','options','cmd','pip','venv']
+__all__=['task','Parameter','OptionsParameter','options','cmd','pip','venv']
 
 
 # environment constants
@@ -74,13 +74,9 @@ class TaskWrapper(object):
         # go through parameters and make sure we have arguments for each, otherwise inject or prompt for them
         for i,p in enumerate(self.params):
             if len(args)<=i:
-                # TODO: use a default value if provided - would be best to use the default value as provided with the function definition, rather than add a 'default' key in parameters dicts.
-                # prompt for a missing argument
-                promptStr=p['prompt'] if 'prompt' in p else 'Please enter a value for {}: '.format(p['name'])
-                v=INPUT_FN(promptStr)
-                args.append(v)
-            # and apply the conversionFn
-            if 'conversionFn' in p: args[i]=p['conversionFn'](args[i])
+                kwargs[p.name]=p.getValue()
+            else:
+                args[i]=p.convertValue(args[i])
         return self.fn(*args,**kwargs)
 
 
@@ -134,6 +130,46 @@ def importTasks(moduleName='pie_tasks'):
         return False
     registerTasksInModule('',m)
     return True
+
+
+
+# ----------------------------------------
+# parameters to tasks
+# ----------------------------------------
+class Parameter(object):
+    def __init__(self,name,prompt=None,inputFn=INPUT_FN,conversionFn=lambda o:o):
+        self.name=name
+        self.prompt=prompt
+        self.inputFn=inputFn
+        self.conversionFn=conversionFn
+
+    # add a value property that calls getValue. This can then be overridden.
+    @property
+    def value(self):
+        return self.getValue()
+
+    def getValue(self):
+        # TODO: provide a default value when prompting the user - would be best to use the default value as provided with the function definition, rather than add a 'default' attribute.
+        # prompt for the value
+        promptStr=self.prompt if self.prompt else 'Please enter a value for {}: '.format(self.name)
+        v=self.inputFn(promptStr)
+        return self.convertValue(v)
+
+    def convertValue(self,v):
+        """This is separate so that getValue is only used for missing arguments, but convertValue is used for arguments provided on the command line too."""
+        return self.conversionFn(v)
+
+
+class OptionsParameter(Parameter):
+    """A parameter that is asked for once (or provided on the command line) and then this value is stored in options and used wherever else an OptionsParameter of the same name is referenced."""
+    NO_VALUE=object()
+
+    def getValue(self):
+        v=getattr(options,self.name,self.NO_VALUE)
+        if v is self.NO_VALUE:
+            v=super(OptionsParameter,self).getValue()
+            setattr(options,self.name,v)
+        return v
 
 
 
