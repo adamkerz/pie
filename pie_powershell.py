@@ -1,7 +1,7 @@
 """
 Extension module for PIE that provides a powershell context to run commands within a local or remote powershell session.
 """
-__VERSION__='0.0.1'
+__VERSION__='0.0.2'
 
 
 import base64
@@ -46,9 +46,10 @@ Invoke-Command -Session $s -ScriptBlock {
             print('Executing powershell code:\n'+c)
             s=base64.b64encode(c.encode('utf-16le'))
             c='powershell -EncodedCommand {}'.format(s)
-            return CmdContextManager.cmd(c,self.contextPosition)
+            CmdContextManager.cmd(c,self.contextPosition)
         else:
             print('An error occurred, not running powershell commands')
+        super(powershell,self).__exit__(exc_type,exc_value,traceback)
 
 
     # ----------------------------------------
