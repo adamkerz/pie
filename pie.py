@@ -140,7 +140,7 @@ class Parameter(object):
         self.inputFn=inputFn
         self.conversionFn=conversionFn
 
-    # add a value property that calls getValue. This can then be overridden.
+    # add a value property that calls getValue which can then be overridden.
     @property
     def value(self):
         return self.getValue()
@@ -230,9 +230,9 @@ class venv(CmdContext):
     def create(self,extraArguments='',pythonCmd='python',py3=PY3):
         """Creates a virutalenv by running the `pythonCmd` and adding `extraArguments` if required. `py3` is used to flag whether this python interpreter is py3 or not. Defaults to whatever the current python version is."""
         if py3:
-            c=r'{} -m venv {} {}'.format(pythonCmd,extraArguments,self.path)
+            c=r'{} -m venv {} "{}"'.format(pythonCmd,extraArguments,self.path)
         else:
-            c=r'{} -m virtualenv {} {}'.format(pythonCmd,extraArguments,self.path)
+            c=r'{} -m virtualenv {} "{}"'.format(pythonCmd,extraArguments,self.path)
         cmd(c)
 
     def cmd(self,c):
