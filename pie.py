@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.2'
+__VERSION__='0.1.3'
 
 
 import inspect
@@ -272,13 +272,32 @@ class CreateBatchFile(Argument):
         pythonHome=os.environ.get('PYTHONHOME','')
         pythonExe=sys.executable
         if WINDOWS:
-            envVars='set PYTHONHOME={0}\nset PATH={0};%PATH%\n'.format(pythonHome) if pythonHome else ''
             with open('pie.bat','w') as fout:
-                fout.write('@echo off\n{}"{}" -m pie %*\n'.format(envVars,pythonExe))
+                fout.write('@echo off\n')
+                if pythonHome:
+                    fout.write('set PIE_OLD_PYTHONHOME=%PYTHONHOME%\n')
+                    fout.write('set PIE_OLD_PATH=%PATH%\n')
+                    fout.write('set PYTHONHOME={}\n'.format(pythonHome))
+                    fout.write('set PATH={};%PATH%\n'.format(pythonHome))
+                fout.write('"{}" -m pie %*\n'.format(pythonExe))
+                if pythonHome:
+                    fout.write('set PYTHONHOME=%PIE_OLD_PYTHONHOME%\n')
+                    fout.write('set PATH=%PIE_OLD_PATH%\n')
+                    fout.write('set PIE_OLD_PYTHONHOME=\n')
+                    fout.write('set PIE_OLD_PATH=\n')
         else:
-            envVars='export PYTHONHOME={0}\nexport PATH={0}:$PATH\n'.format(pythonHome) if pythonHome else ''
             with open('pie','w') as fout:
-                fout.write('{}"{}" -m pie %*\n'.format(envVars,pythonExe))
+                if pythonHome:
+                    fout.write('export PIE_OLD_PYTHONHOME=$PYTHONHOME\n')
+                    fout.write('export PIE_OLD_PATH=$PATH\n')
+                    fout.write('export PYTHONHOME={}\n'.format(pythonHome))
+                    fout.write('export PATH={}:$PATH\n'.format(pythonHome))
+                fout.write('"{}" -m pie %*\n'.format(pythonExe))
+                if pythonHome:
+                    fout.write('export PYTHONHOME=$PIE_OLD_PYTHONHOME\n')
+                    fout.write('export PATH=$PIE_OLD_PATH\n')
+                    fout.write('unset PIE_OLD_PYTHONHOME\n')
+                    fout.write('unset PIE_OLD_PATH\n')
 
 
 class ListTasks(Argument):
