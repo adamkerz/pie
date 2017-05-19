@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.4'
+__VERSION__='0.1.5'
 
 
 import inspect
@@ -123,8 +123,9 @@ def registerTasksInModule(modulePath,module):
                 registerTasksInModule(modulePrefix+k,v)
 
 
-def importTasks(moduleName='pie_tasks'):
+def importTasks():
     """Import the pie_tasks module and register all tasks found"""
+    moduleName=getattr(options,'PIE_TASKS_MODULE','pie_tasks')
     m=__import__(moduleName)
     registerTasksInModule('',m)
 
@@ -315,7 +316,7 @@ class ListTasks(Argument):
 
 class Help(Argument):
     def execute(self):
-        print('Usage:    pie [ -v | -h | -b | -l | -L ]')
+        print('Usage:    pie [ -v | -h | -b | -l | -L | m <name> ]')
         print('          pie [ -o <name>=<value> | <task>[(<args>...)] ]...')
         print('Version:  v{}'.format(__VERSION__))
         print('')
@@ -324,6 +325,7 @@ class Help(Argument):
         print('  -b      Create batch file shortcut')
         print('  -l      List available tasks with description')
         print('  -L      List available tasks with name only')
+        print('  -m <n>  Change name of the pie_tasks module to import')
         print('  -o      Sets an option with name to value')
         print('  <task>  Runs a task passing through arguments if required')
         print('')
@@ -340,6 +342,17 @@ class Option(Argument):
 
     def __repr__(self):
         return 'Option: {}={}'.format(self.name,self.value)
+
+
+class ModuleName(Argument):
+    def __init__(self,name):
+        self.name=name
+
+    def execute(self):
+        setattr(options,'PIE_TASKS_MODULE',self.name)
+
+    def __repr__(self):
+        return 'ModuleName: {}'.format(self.name)
 
 
 class TaskCall(Argument):
@@ -384,6 +397,9 @@ def parseArguments(args):
                 parsed.append(ListTasks())
             elif arg=='-L':
                 parsed.append(ListTasks(includeDescription=False))
+            elif arg=='-m':
+                parsed.append(ModuleName(args[i+1]))
+                i+=1
             elif arg=='-o':
                 name,value=args[i+1].split('=')
                 parsed.append(Option(name,value))
