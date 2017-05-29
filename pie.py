@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.5'
+__VERSION__='0.1.6a'
 
 
 import inspect
@@ -401,6 +401,7 @@ def parseArguments(args):
                 parsed.append(ModuleName(args[i+1]))
                 i+=1
             elif arg=='-o':
+                if '=' not in args[i+1]: raise Exception('Option ("{}") must be in format name=value'.format(args[i+1]))
                 name,value=args[i+1].split('=')
                 parsed.append(Option(name,value))
                 i+=1
