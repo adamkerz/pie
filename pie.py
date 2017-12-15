@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.2.1'
+__VERSION__='0.2.2'
 
 
 import inspect
@@ -110,6 +110,8 @@ def registerTasksInModule(modulePath,module):
     for k,v in vars(module).items():
         if isinstance(v,TaskWrapper):
             if k.startswith('_'): v.hidden=True
+            # handle our various namespace options
+            k=k.replace('__','.')
             mp=modulePrefix+v.namespace+'.'+k if v.namespace is not None else modulePrefix+k
             tasks[mp]=v
 
