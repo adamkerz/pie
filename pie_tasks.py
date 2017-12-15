@@ -8,20 +8,18 @@ def setup():
 
 
 @task
-def createVenvs():
-    venv(r'venvs\test').create()
+def createVenv():
+    venv('.venv-test').create()
 
 
 @task
 def updatePackages():
-    with venv(r'venvs\test'):
-        # update pip
+    with venv('.venv-test'):
         pip(r'install -U pip')
-        # and update other requirements
         pip(r'install -U -r requirements.test.txt')
 
 
 @task
 def test():
-    with venv(r'venvs\test'):
+    with venv(r'.venv-test'):
         cmd(r'python -m pytest -s tests')

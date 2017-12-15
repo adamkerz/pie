@@ -6,6 +6,7 @@ __pycache__/
 # pytest generated dir
 /tests/.cache/
 # standard generated dirs
+/.venv*
 /venvs/
 /build/
 /dist/
