@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.1.4'
+__VERSION__='0.2.0'
 
 
 import inspect
@@ -58,9 +58,7 @@ tasks={}
 
 
 class TaskWrapper(object):
-    """
-    A callable wrapper around a task function. Provides prompting for missing function arguments.
-    """
+    """A callable wrapper around a task function. Provides prompting for missing function arguments."""
     def __init__(self,fn,params):
         self.fn=fn
         self.params=params
@@ -123,8 +121,9 @@ def registerTasksInModule(modulePath,module):
                 registerTasksInModule(modulePrefix+k,v)
 
 
-def importTasks(moduleName='pie_tasks'):
+def importTasks():
     """Import the pie_tasks module and register all tasks found"""
+    moduleName=getattr(options,'PIE_TASKS_MODULE','pie_tasks')
     m=__import__(moduleName)
     registerTasksInModule('',m)
 
@@ -134,6 +133,7 @@ def importTasks(moduleName='pie_tasks'):
 # parameters to tasks
 # ----------------------------------------
 class Parameter(object):
+    """Parameter base class for specifying how to handle parameters for tasks"""
     def __init__(self,name,prompt=None,inputFn=INPUT_FN,conversionFn=lambda o:o):
         self.name=name
         self.prompt=prompt
@@ -191,7 +191,7 @@ class CmdContextManager(object):
     def cmd(cls,c,i=None):
         if i is None: i=len(cls.context)
         if i>0: return cls.context[i-1].cmd(c)
-        CMD_FN(c,shell=True)
+        return CMD_FN(c,shell=True)
 
     @classmethod
     def exit(cls):
@@ -221,9 +221,7 @@ class CmdContext(object):
 
 
 class venv(CmdContext):
-    """
-    A context class used to execute commands within a virtualenv
-    """
+    """A context class used to execute commands within a virtualenv"""
     def __init__(self,path):
         self.path=path
 
@@ -265,6 +263,20 @@ class Version(Argument):
 
     def __repr__(self):
         return 'Version: {}'.format(__VERSION__)
+
+
+class CreatePieVenv(Argument):
+    def execute(self):
+        pv=PieVenv()
+        print('Creating {}'.format(pv.PIE_VENV))
+        pv.create()
+
+
+class UpdatePieVenv(Argument):
+    def execute(self):
+        pv=PieVenv()
+        print('Updating {} with '.format(pv.PIE_VENV,pv.PIE_REQUIREMENTS))
+        pv.update()
 
 
 class CreateBatchFile(Argument):
@@ -315,7 +327,7 @@ class ListTasks(Argument):
 
 class Help(Argument):
     def execute(self):
-        print('Usage:    pie [ -v | -h | -b | -l | -L ]')
+        print('Usage:    pie [ -v | -h | -b | -l | -L | m <name> ]')
         print('          pie [ -o <name>=<value> | <task>[(<args>...)] ]...')
         print('Version:  v{}'.format(__VERSION__))
         print('')
@@ -324,6 +336,9 @@ class Help(Argument):
         print('  -b      Create batch file shortcut')
         print('  -l      List available tasks with description')
         print('  -L      List available tasks with name only')
+        print('  -m <n>  Change name of the pie_tasks module to import')
+        print('  -R      Creates a .venv-pie venv using requirements.pie.txt')
+        print('  -r      Updates the .venv-pie venv using requirements.pie.txt')
         print('  -o      Sets an option with name to value')
         print('  <task>  Runs a task passing through arguments if required')
         print('')
@@ -340,6 +355,17 @@ class Option(Argument):
 
     def __repr__(self):
         return 'Option: {}={}'.format(self.name,self.value)
+
+
+class ModuleName(Argument):
+    def __init__(self,name):
+        self.name=name
+
+    def execute(self):
+        setattr(options,'PIE_TASKS_MODULE',self.name)
+
+    def __repr__(self):
+        return 'ModuleName: {}'.format(self.name)
 
 
 class TaskCall(Argument):
@@ -384,7 +410,16 @@ def parseArguments(args):
                 parsed.append(ListTasks())
             elif arg=='-L':
                 parsed.append(ListTasks(includeDescription=False))
+            elif arg=='-m':
+                parsed.append(ModuleName(args[i+1]))
+                i+=1
+            elif arg=='-R':
+                parsed.append(CreatePieVenv())
+                parsed.append(UpdatePieVenv())
+            elif arg=='-r':
+                parsed.append(UpdatePieVenv())
             elif arg=='-o':
+                if '=' not in args[i+1]: raise Exception('Option ("{}") must be in format name=value'.format(args[i+1]))
                 name,value=args[i+1].split('=')
                 parsed.append(Option(name,value))
                 i+=1
@@ -405,15 +440,49 @@ def parseArguments(args):
 
 
 # ----------------------------------------
+# pie venv
+# ----------------------------------------
+class PieVenv(object):
+    PIE_REQUIREMENTS='requirements.pie.txt'
+    PIE_VENV='.venv-pie'
+
+    def requirements_exists(self):
+        return os.path.isfile(self.PIE_REQUIREMENTS)
+
+    def exists(self):
+        return os.path.isdir(self.PIE_VENV)
+
+    def is_activated(self):
+        return sys.prefix.endswith(self.PIE_VENV)
+
+    def create(self):
+        venv(self.PIE_VENV).create('--system-site-packages')
+
+    def update(self):
+        with venv(self.PIE_VENV):
+            pip('install -U pip')
+            pip('install -r {}'.format(self.PIE_REQUIREMENTS))
+
+    def run_pie(self,args):
+        with venv(self.PIE_VENV):
+            r=cmd(r'python pie.py {}'.format(' '.join(args)))
+        return r
+
+
+
+# ----------------------------------------
 # entry point
 # ----------------------------------------
 def main(args):
-    args=parseArguments(args)
-    if args:
-        tasksImported=False
-        for a in args:
-            # only import tasks if needed, saves exceptions when only looking for help or creating the batch file
-            if a.needsTasksImported and not tasksImported:
+    parsed_args=parseArguments(args)
+    if parsed_args:
+        # only import tasks if needed, only run in a pie venv if needed, this saves exceptions and time when only looking for help or creating the batch file
+        if any([a.needsTasksImported for a in parsed_args]):
+            # run in the pie venv if required
+            pv=PieVenv()
+            # either no pie requirements or the venv is activated
+            if not pv.requirements_exists() or pv.is_activated():
+                # import tasks
                 try:
                     importTasks()
                 except Exception as e:
@@ -422,21 +491,31 @@ def main(args):
                         print('pie_tasks could not be found.')
                     else:
                         print('An error occurred when importing pie_tasks:\n'+traceback.format_exc())
-                    break
-                tasksImported=True
-            # try to execute the arg
+                    return 1
+
+            else:
+                # otherwise, we need to activate and run pie again, within the venv
+                if pv.exists():
+                    return pv.run_pie(args)
+                else:
+                    print('{} not found. You can create it with the -R argument.'.format(pv.PIE_VENV))
+                    return 1
+
+        # try to execute each arg
+        for a in parsed_args:
             try:
                 a.execute()
             except TaskCall.TaskNotFound as e:
                 print('Task {} could not be found.'.format(e.name))
                 break
-            # print(repr(a))
+
     else:
         Help().execute()
+
 
 
 if __name__=='__main__':
     # import pie so that both we and any pie_tasks code that imports pie are referring to the same module variables
     import pie
     # skip the name of the command
-    pie.main(sys.argv[1:])
+    sys.exit(pie.main(sys.argv[1:]))
