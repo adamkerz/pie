@@ -7,7 +7,3 @@ __pycache__/
 /tests/.cache/
 # standard generated dirs
 /.venv*
-/venvs/
-/build/
-/dist/
-/pie.egg-info/

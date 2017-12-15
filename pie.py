@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.2.0'
+__VERSION__='0.2.1'
 
 
 import inspect
@@ -59,9 +59,10 @@ tasks={}
 
 class TaskWrapper(object):
     """A callable wrapper around a task function. Provides prompting for missing function arguments."""
-    def __init__(self,fn,params):
+    def __init__(self,fn,params,namespace):
         self.fn=fn
         self.params=params
+        self.namespace=namespace
         self.desc=fn.__doc__
 
         # parameters set when registering tasks
@@ -79,7 +80,7 @@ class TaskWrapper(object):
         return self.fn(*args,**kwargs)
 
 
-def task(parameters=[]):
+def task(parameters=[],namespace=None):
     """
     A (function that returns a) decorator that converts a simple Python function into a pie Task.
      - parameters is a list of objects (use Lookup) with the following attributes:
@@ -88,7 +89,7 @@ def task(parameters=[]):
     """
     def decorator(taskFn):
         # convert the function into a callable task instance
-        return TaskWrapper(taskFn,parameters)
+        return TaskWrapper(taskFn,parameters,namespace)
 
     # check in case we were called as a decorator eg. @task (without the function call)
     if callable(parameters):
@@ -109,7 +110,8 @@ def registerTasksInModule(modulePath,module):
     for k,v in vars(module).items():
         if isinstance(v,TaskWrapper):
             if k.startswith('_'): v.hidden=True
-            tasks[modulePrefix+k]=v
+            mp=modulePrefix+v.namespace+'.'+k if v.namespace is not None else modulePrefix+k
+            tasks[mp]=v
 
         elif isinstance(v,types.ModuleType):
             # there is a situation where a module in a package that is imported into another module (so, doubly nested tasks) will also show up at the package level, even though it's not imported there
