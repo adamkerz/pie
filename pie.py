@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.2.2'
+__VERSION__='0.2.3a'
 
 
 import inspect
@@ -491,7 +491,8 @@ def main(args):
                     importTasks()
                 except Exception as e:
                     # pick up the specific case of not being able to find a pie_tasks module/package
-                    if isinstance(e,ImportError) and e.message=='No module named pie_tasks':
+                    # handle different attributes and messages in py2 vs py3
+                    if isinstance(e,ImportError) and (getattr(e,'message','')=='No module named pie_tasks' or getattr(e,'msg','')=="No module named 'pie_tasks'"):
                         print('pie_tasks could not be found.')
                     else:
                         print('An error occurred when importing pie_tasks:\n'+traceback.format_exc())
