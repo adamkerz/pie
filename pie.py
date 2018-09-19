@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.2.3a'
+__VERSION__='0.2.3b'
 
 
 import inspect
@@ -69,7 +69,7 @@ class TaskWrapper(object):
         self.hidden=False
 
     def __call__(self,*args,**kwargs):
-        # args might be a tuple, but we want to append to it
+        # args might be a tuple, but we want to modify it
         args=list(args)
         # go through parameters and make sure we have arguments for each, otherwise inject or prompt for them
         for i,p in enumerate(self.params):
@@ -169,10 +169,13 @@ class OptionsParameter(Parameter):
         v=getattr(options,self.name,self.NO_VALUE)
         if v is self.NO_VALUE:
             v=super(OptionsParameter,self).getValue()
-            setattr(options,self.name,v)
         return v
 
-
+    def convertValue(self,v):
+        """This is separate so that getValue is only used for missing arguments, but convertValue is used for arguments provided on the command line too."""
+        v=super(OptionsParameter,self).convertValue(v)
+        setattr(options,self.name,v)
+        return v
 
 # ----------------------------------------
 # operations
