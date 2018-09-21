@@ -1,6 +1,8 @@
 from pie import *
 
 
+
+
 @task
 def no_function_call_decorator():
     pass
@@ -20,9 +22,13 @@ def options_parameter(v):
 
 
 @task([Parameter('v')])
-def parameter_default_value(v='default'):
+def parameter_default_value(v='foo'):
     print(v)
 
 @task([OptionsParameter('v')])
-def options_parameter_default_value(v='default'):
+def options_parameter_default_value(v='foo'):
+    print(v)
+
+@task([OptionsParameter('v',use_default=True)])
+def options_parameter_default_value_use_default(v='foo'):
     print(v)
