@@ -43,12 +43,6 @@ def a_long_long_long_long_long_long_task_name():
     print('long')
 
 
-@task(parameters=[dict(name='v',conversionFn=int)])
-def params(v):
-    """Test param prompting and injection."""
-    print('sum: {}'.format(v+2))
-
-
 @task
 def testCmd():
     cmd('echo hi')
