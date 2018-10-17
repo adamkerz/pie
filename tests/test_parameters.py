@@ -2,15 +2,6 @@ import pytest
 
 
 @pytest.mark.parametrize('pie_tasks_path',['parameters'],indirect=['pie_tasks_path'])
-def test_listing_tasks(pie,capsys,pie_tasks_path):
-    pie.main(['-l'])
-    out,err=capsys.readouterr()
-    tasks=set([t.strip(' ') for t in out.strip('\n').split('\n')])
-    expected=set(['no_function_call_decorator','function_call_decorator','one_parameter','options_parameter','parameter_default_value','options_parameter_default_value','options_parameter_default_value_use_default'])
-    assert tasks==expected
-
-
-@pytest.mark.parametrize('pie_tasks_path',['parameters'],indirect=['pie_tasks_path'])
 def test_parameter_suggests_default(pie,capsys,pie_tasks_path,pie_mock_input):
     pie_mock_input.set_return('')
     pie.main(['parameter_default_value'])
@@ -68,5 +59,11 @@ def test_options_parameter_suggests_default(pie,capsys,pie_tasks_path,pie_mock_i
 @pytest.mark.parametrize('pie_tasks_path',['parameters'],indirect=['pie_tasks_path'])
 def test_options_parameter_uses_default(pie,capsys,pie_tasks_path,pie_input_forbidden):
     pie.main(['options_parameter_default_value_use_default'])
+    out,err=capsys.readouterr()
+    assert out=='foo\n'
+
+@pytest.mark.parametrize('pie_tasks_path',['parameters'],indirect=['pie_tasks_path'])
+def test_options_parameter_multiple_parameters_uses_default(pie,capsys,pie_tasks_path,pie_input_forbidden):
+    pie.main(['options_parameter_multiple_parameters_use_default(bar)'])
     out,err=capsys.readouterr()
     assert out=='foo\n'
