@@ -10,20 +10,20 @@ def cmd(c,use_sudo=False):
     sudo(c) if use_sudo else pie.cmd(c)
 
 def sudo(c):
-    pie.cmd(f'sudo {c}')
+    pie.cmd('sudo {}'.format(c))
 
 
 def set_permissions(p,mode=None,owner=None,group=None,use_sudo=False):
-    if mode: cmd(f'chmod {mode:04o} {p}',use_sudo)
-    if owner: cmd(f'chown {owner} {p}',use_sudo)
-    if group: cmd(f'chgrp {group} {p}',use_sudo)
+    if mode: cmd('chmod {:04o} {}'.format(mode,p),use_sudo)
+    if owner: cmd('chown {} {}'.format(owner,p),use_sudo)
+    if group: cmd('chgrp {} {}'.format(group,p),use_sudo)
 
 
 def mkdir(p,mode=None,owner=None,group=None,use_sudo=False):
-    cmd(f'mkdir {p}',use_sudo)
+    cmd('mkdir {}'.format(p),use_sudo)
     set_permissions(p,mode,owner,group,use_sudo)
 
 def put_file(src,dest,mode=None,owner=None,group=None,use_sudo=False):
-    cmd(f'cp {src} {dest}',use_sudo)
+    cmd('cp {} {}'.format(src,dest),use_sudo)
     set_permissions(dest,mode,owner,group,use_sudo)
 
