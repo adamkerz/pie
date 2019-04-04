@@ -3,9 +3,10 @@ import pytest
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
 def test_no_venv(pie,capsys,pie_tasks_path):
-    pie.main(['test'])
+    r=pie.main(['test'])
     out,err=capsys.readouterr()
-    assert out.startswith('.venv-pie not found. You can create it with the -R argument.')
+    assert err.startswith('.venv-pie not found. You can create it with the -R argument.')
+    assert r==1
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])

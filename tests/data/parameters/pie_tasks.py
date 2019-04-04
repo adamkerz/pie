@@ -32,3 +32,7 @@ def options_parameter_default_value(v='foo'):
 @task([OptionsParameter('v',use_default=True)])
 def options_parameter_default_value_use_default(v='foo'):
     print(v)
+
+@task([OptionsParameter('a'),OptionsParameter('b',use_default=True),])
+def options_parameter_multiple_parameters_use_default(a,b='foo'):
+    print(b)

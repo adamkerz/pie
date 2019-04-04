@@ -3,7 +3,7 @@ from pie import *
 
 @task
 def setup():
-    createVenvs()
+    createVenv()
     updatePackages()
 
 
