@@ -80,7 +80,7 @@ class TaskWrapper(object):
         # for each param, get the value and add to provided if not already there, otherwise make sure it's converted
         for param in self.params:
             if param.name not in arg_names:
-                raise Exception('{} not a valid parameter of task {}'.format(param.name,fn.__name__))
+                raise Exception('{} not a valid parameter of task {}'.format(param.name, self.fn.__name__))
             if param.name not in provided:
                 # provide a default if one exists
                 default=defaults.get(param.name,Parameter.NO_VALUE)
