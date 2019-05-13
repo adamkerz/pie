@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 
@@ -16,7 +18,9 @@ def test_create_venv(pie,capsys,pie_tasks_path,pie_mock_cmd):
     # TODO: improve checking, it's possible the wrong venv could be activated and we wouldn't detect it
     assert len(pie_mock_cmd.cmds)==3
     # TODO: more specific testing for py2/3
-    assert pie_mock_cmd.cmds[0][0][0]=='python -m virtualenv --system-site-packages ".venv-pie"' or pie_mock_cmd.cmds[0][0][0]=='python -m venv --system-site-packages ".venv-pie"'
+    venv_path=os.path.join(os.getcwd(),'.venv-pie')
+
+    assert pie_mock_cmd.cmds[0][0][0]=='python -m virtualenv --system-site-packages "{}"'.format(venv_path) or pie_mock_cmd.cmds[0][0][0]=='python -m venv --system-site-packages "{}"'.format(venv_path)
     assert pie_mock_cmd.cmds[1][0][0].endswith('python -m pip install -U pip"')
     assert pie_mock_cmd.cmds[2][0][0].endswith('python -m pip install -r requirements.pie.txt"')
 
