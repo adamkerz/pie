@@ -253,17 +253,29 @@ class CmdContext(object):
     # make this a context manager
     def __enter__(self):
         self.contextPosition=CmdContextManager.enter(self)
+        self.enter_hook()
         return self
 
+    def enter_hook(self):
+        pass
+
     def __exit__(self,exc_type,exc_value,traceback):
+        self.exit_hook()
         CmdContextManager.exit()
         # we don't care about an exception
+
+    def exit_hook(self):
+        pass
+
+    def cmd(self,c):
+        """Execute the cmd within the context"""
+        return CmdContextManager.cmd(c,self.contextPosition)
 
 
 class venv(CmdContext):
     """A context class used to execute commands within a virtualenv"""
     def __init__(self,path):
-        self.path=path
+        self.path=os.path.abspath(path)
 
     def create(self,extraArguments='',pythonCmd='python',py3=PY3):
         """Creates a virutalenv by running the `pythonCmd` and adding `extraArguments` if required. `py3` is used to flag whether this python interpreter is py3 or not. Defaults to whatever the current python version is."""
@@ -280,6 +292,19 @@ class venv(CmdContext):
         else:
             c=r'bash -c "{}/bin/activate && {}"'.format(self.path,c)
         return CmdContextManager.cmd(c,self.contextPosition)
+
+
+class cd(CmdContext):
+    """A context class used to execute commands within a different working dir"""
+    def __init__(self,path):
+        self.path=path
+        self.old_path=os.getcwd()
+
+    def enter_hook(self):
+        os.chdir(self.path)
+
+    def exit_hook(self):
+        os.chdir(self.old_path)
 
 
 
