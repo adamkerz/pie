@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.2.6'
+__VERSION__='0.3.0a'
 
 
 import inspect
@@ -80,7 +80,7 @@ class TaskWrapper(object):
         # for each param, get the value and add to provided if not already there, otherwise make sure it's converted
         for param in self.params:
             if param.name not in arg_names:
-                raise Exception('{} not a valid parameter of task {}'.format(param.name,fn.__name__))
+                raise Exception('{} not a valid parameter of task {}'.format(param.name,self.fn.__name__))
             if param.name not in provided:
                 # provide a default if one exists
                 default=defaults.get(param.name,Parameter.NO_VALUE)
@@ -290,7 +290,7 @@ class venv(CmdContext):
         if WINDOWS:
             c=r'cmd /c "{}\Scripts\activate.bat && {}"'.format(self.path,c)
         else:
-            c=r'bash -c "{}/bin/activate && {}"'.format(self.path,c)
+            c=r'bash -c "source {}/bin/activate && {}"'.format(self.path,c)
         return CmdContextManager.cmd(c,self.contextPosition)
 
 
