@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0a'
+__VERSION__='0.3.0b'
 
 
 import inspect
@@ -16,7 +16,7 @@ import traceback
 import types
 
 
-__all__=['task','Parameter','OptionsParameter','options','cmd','cd','pip','venv']
+__all__=['task','Parameter','OptionsParameter','options','cmd','cd','env','pip','venv']
 
 
 # environment constants
@@ -305,6 +305,27 @@ class cd(CmdContext):
     def exit_hook(self):
         os.chdir(self.old_path)
 
+
+class env(CmdContext):
+    """A context class used to execute commands with a different environment"""
+    def __init__(self,env_dict):
+        self.env_dict=env_dict
+
+    def enter_hook(self):
+        self.old_env_dict={k:os.environ.get(k,None) for k in self.env_dict.keys()}
+        self._set_environ(self.env_dict)
+
+    def exit_hook(self):
+        self._set_environ(self.old_env_dict)
+
+    @classmethod
+    def _set_environ(cls,d):
+        for k,v in d.items():
+            if v is None:
+                if k in os.environ:
+                    del os.environ[k]
+            else:
+                os.environ[k]=v
 
 
 # ----------------------------------------
