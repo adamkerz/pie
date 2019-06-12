@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0b'
+__VERSION__='0.3.0c'
 
 
 import inspect
@@ -312,20 +312,38 @@ class env(CmdContext):
         self.env_dict=env_dict
 
     def enter_hook(self):
-        self.old_env_dict={k:os.environ.get(k,None) for k in self.env_dict.keys()}
-        self._set_environ(self.env_dict)
+        self.old_env_dict=self.get_multiple(self.env_dict.keys(),default=None)
+        self.set_multiple(self.env_dict)
 
     def exit_hook(self):
-        self._set_environ(self.old_env_dict)
+        self.set_multiple(self.old_env_dict)
+
+
+    # some convenience methods
+    @classmethod
+    def get(cls,k,default=None):
+        """Gets a single environment variable. Returns `default` if that variable doesn't exist."""
+        return os.environ.get(k,default)
 
     @classmethod
-    def _set_environ(cls,d):
+    def get_multiple(cls,ks,default=None):
+        """Accepts a list of keys and returns a dict of values"""
+        return {k:cls.get(k,default) for k in ks}
+
+    @classmethod
+    def set(cls,k,v):
+        """Sets a single environment variable. A value of None results in that environment variable being removed."""
+        if v is None:
+            if k in os.environ:
+                del os.environ[k]
+        else:
+            os.environ[k]=v
+
+    @classmethod
+    def set_multiple(cls,d):
+        """Accepts a dictionary of values to set"""
         for k,v in d.items():
-            if v is None:
-                if k in os.environ:
-                    del os.environ[k]
-            else:
-                os.environ[k]=v
+            cls.set(k,v)
 
 
 # ----------------------------------------
