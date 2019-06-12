@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0c'
+__VERSION__='0.3.0d'
 
 
 import inspect
@@ -320,6 +320,11 @@ class env(CmdContext):
 
 
     # some convenience methods
+    @classmethod
+    def has(cls,k):
+        """Checks if an environment variable exists."""
+        return (cls.get(k,None) is not None)
+
     @classmethod
     def get(cls,k,default=None):
         """Gets a single environment variable. Returns `default` if that variable doesn't exist."""
