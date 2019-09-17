@@ -44,5 +44,6 @@ def test_use_venv(pie,capsys,pie_tasks_path,pie_mock_cmd):
     out,err=capsys.readouterr()
     # TODO: Windows only
     assert len(pie_mock_cmd.cmds)==1
-    assert pie_mock_cmd.cmds[0][0][0].endswith('.venv-pie\\Scripts\\activate.bat && python pie.py test"')
+    assert '.venv-pie\\Scripts\\activate.bat"' in pie_mock_cmd.cmds[0][0][0] or '.venv-pie/Scripts/activate' in pie_mock_cmd.cmds[0][0][0]
+    assert pie_mock_cmd.cmds[0][0][0].endswith('python pie.py test"')
     venv_path.rmdir()

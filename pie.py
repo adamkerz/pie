@@ -287,7 +287,10 @@ class venv(CmdContext):
     def cmd(self,c):
         """Runs the command `c` in this virtualenv."""
         if WINDOWS:
-            c=r'cmd /c "{}\Scripts\activate.bat && {}"'.format(self.path,c)
+            # cmd.exe /C has real specific behaviour around quotes.
+            # The below double quote syntax is valid because it strips the outside quotes.
+            # The path to activate.bat must be quoted in case it contains spaces
+            c=r'''cmd /c ""{}\Scripts\activate.bat" && {}"'''.format(self.path,c)
         else:
             c=r'bash -c "source {}/bin/activate && {}"'.format(self.path,c)
         return CmdContextManager.cmd(c,self.contextPosition)
