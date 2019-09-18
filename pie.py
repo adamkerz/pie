@@ -30,10 +30,6 @@ INPUT_FN=input if PY3 else raw_input
 # function to execute a command - must emulate the subprocess call method and return an error code on failure
 CMD_FN=subprocess.call
 
-# environment constant specific imports
-if WINDOWS:
-    import locale
-    from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
 
 
 # ----------------------------------------
@@ -588,9 +584,12 @@ class PieVenv(object):
     def _get_sys_prefix(self):
         if not WINDOWS:
             return sys.prefix
-        
+
         # On Windows, running via activate.bat, sys.prefix is converted to short-name format.
         # In order to know the sys.prefix path, we need to ensure it's converted back to long name format.
+        import locale
+        from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
+
         # Start by getting prefix as unicode (note, str imported from builtins)
         sys_prefix = str(sys.prefix)
 
@@ -615,7 +614,7 @@ class PieVenv(object):
                 if sys_prefix.startswith(long_name_prefix):
                     sys_prefix = sys_prefix[len(long_name_prefix):]
                 return sys_prefix
-        
+
         # check to see if a Windows error was fired
         e = GetLastError()
         error_template = u'Failed to get long name for sys.prefix ({}): {{}}'.format(sys.prefix)
