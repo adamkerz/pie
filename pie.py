@@ -15,6 +15,8 @@ import sys
 import traceback
 import types
 
+from builtins import str
+
 
 __all__=['task','Parameter','OptionsParameter','options','cmd','cd','env','pip','venv']
 
@@ -564,7 +566,7 @@ class PieVenv(object):
         return os.path.isdir(self.PIE_VENV)
 
     def is_activated(self):
-        return sys.prefix.endswith(self.PIE_VENV)
+        return self._get_sys_prefix().endswith(self.PIE_VENV)
 
     def create(self):
         venv(self.PIE_VENV).create('--system-site-packages')
@@ -578,6 +580,50 @@ class PieVenv(object):
         with venv(self.PIE_VENV):
             r=cmd(r'python pie.py {}'.format(' '.join(args)))
         return r
+
+    def _get_sys_prefix(self):
+        if not WINDOWS:
+            return sys.prefix
+
+        # On Windows, running via activate.bat, sys.prefix is converted to short-name format.
+        # In order to know the sys.prefix path, we need to ensure it's converted back to long name format.
+        import locale
+        from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
+
+        # Start by getting prefix as unicode (note, str imported from builtins)
+        sys_prefix = str(sys.prefix)
+
+        # long names on Windows (before Windows 10 v1607, without GP changes) require a prefix if longer than MAX_PATH
+        # just use the prefix everywhere for conveniance sake
+        long_name_prefix = u'\\\\?\\'
+        sys_prefix = sys_prefix if sys_prefix.startswith(long_name_prefix) else u'{}{}'.format(long_name_prefix, sys_prefix)
+
+        # find out how long the long name path is
+        sys_prefix_chars = windll.kernel32.GetLongPathNameW(sys_prefix, None, 0)
+
+        # if we have a char length return, the long name path can be retrieved
+        if sys_prefix_chars:
+            # create a buffer based on the char length to hold the long name
+            sys_prefix_long_name_buffer = create_unicode_buffer(sys_prefix_chars)
+
+            # get the long name, inside an if statement to handle the (unlikely) event that the path is deleted
+            # between the above call and now
+            if windll.kernel32.GetLongPathNameW(sys_prefix, sys_prefix_long_name_buffer, sys_prefix_chars):
+                # get the value and remove the prefix
+                sys_prefix = sys_prefix_long_name_buffer.value
+                if sys_prefix.startswith(long_name_prefix):
+                    sys_prefix = sys_prefix[len(long_name_prefix):]
+                return sys_prefix
+
+        # check to see if a Windows error was fired
+        e = GetLastError()
+        error_template = u'Failed to get long name for sys.prefix ({}): {{}}'.format(sys.prefix)
+        if e:
+            formatted_error = FormatError(e).decode(locale.getpreferredencoding(), 'replace')
+            raise WindowsError(e, error_template.format(formatted_error))
+
+        # if no Windows error, who knows what happend, fail
+        raise Exception(error_template.format('unknown error'))
 
 
 
