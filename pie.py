@@ -27,8 +27,6 @@ PY3=(sys.version_info>=(3,0))
 
 # function for input (also so that we can mock it tests)
 INPUT_FN=input if PY3 else raw_input
-# function to execute a command - must emulate the subprocess call method and return an error code on failure
-CMD_FN=subprocess.call
 
 
 
@@ -230,9 +228,10 @@ class CmdContextManager(object):
     def cmd(cls,c,i=None):
         if i is None: i=len(cls.context)
         if i>0: return cls.context[i-1].cmd(c)
-        errorcode=CMD_FN(c,shell=True)
-        if errorcode!=0:
-            raise cls.CmdError(errorcode,c)
+        process = subprocess.Popen(c, shell=True, stdout=sys.stdout, stderr=sys.stderr, universal_newlines=True)
+        process.communicate()
+        if process.returncode!=0:
+            raise cls.CmdError(process.returncode,c)
 
     @classmethod
     def exit(cls):
@@ -664,9 +663,11 @@ def main(args):
             try:
                 a.execute()
             except CmdContextManager.CmdError as e:
-                print('Error when executing command "{}". Errorcode = {}'.format(e.cmd,e.errorcode),file=sys.stderr)
+                print('----------------------', file=sys.stderr)
+                print('Error when executing command \n Command = "{}".\n Errorcode = {}'.format(e.cmd,e.errorcode),file=sys.stderr)
                 return e.errorcode
             except TaskCall.TaskNotFound as e:
+                print('----------------------', file=sys.stderr)
                 print('Task {} could not be found.'.format(e.name),file=sys.stderr)
                 return 1
         return 0
