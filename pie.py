@@ -228,7 +228,7 @@ class CmdContextManager(object):
     def cmd(cls,c,i=None):
         if i is None: i=len(cls.context)
         if i>0: return cls.context[i-1].cmd(c)
-        process = subprocess.Popen(c, shell=True, stdout=sys.stdout, stderr=sys.stderr, universal_newlines=True)
+        process = subprocess.Popen(c, shell=True, stdout=sys.stdout, stderr=sys.stderr )
         process.communicate()
         if process.returncode!=0:
             raise cls.CmdError(process.returncode,c)
