@@ -57,4 +57,49 @@ def test_use_venv(pie,capsys,is_win,pie_tasks_path,pie_mock_cmd):
         assert len(pie_mock_cmd.cmds)==1
         assert pie_mock_cmd.cmds[0][0][0].endswith('"{}" && python pie.py test"'.format(venv_activate_cmd,venv_python_cmd))
     finally:
-        venv_path.rmdir()
+        if venv_path.exists(): venv_path.rmdir()
+
+
+@pytest.mark.parametrize('pie_tasks_path',['pie space requirements'],indirect=['pie_tasks_path'])
+def test_create_venv__space_in_path(pie,capsys,is_win,pie_tasks_path,pie_mock_cmd):
+
+    def get_short_path_name(long_name):
+        """
+        Gets the short path name of a given long path.
+        http://stackoverflow.com/a/23598461/200291
+        """
+        import ctypes
+        from ctypes import wintypes
+        _GetShortPathNameW=ctypes.windll.kernel32.GetShortPathNameW
+        _GetShortPathNameW.argtypes=[wintypes.LPCWSTR,wintypes.LPWSTR,wintypes.DWORD]
+        _GetShortPathNameW.restype=wintypes.DWORD
+
+        # GetShortPathName is used by first calling it without a destination buffer.
+        # It will return the number of characters you need to make the destination buffer. You then call it again with a buffer of that size.
+        # If, due to a TOCTTOU problem, the return value is still larger, keep trying until you've got it right. So:
+        output_buf_size=0
+        while True:
+            output_buf=ctypes.create_unicode_buffer(output_buf_size)
+            needed=_GetShortPathNameW(long_name,output_buf,output_buf_size)
+            if output_buf_size>=needed:
+                return output_buf.value
+            else:
+                output_buf_size=needed
+
+    venv_path=pie_tasks_path/'.venv-pie'
+    old_sys_prefix=sys.prefix
+    try:
+        if not venv_path.exists(): venv_path.mkdir()
+        # windows only: turn the venv_path into a short version (the path must exist for this)
+        venv_short_path=get_short_path_name(str(venv_path)) if is_win else str(venv_path)
+        # set the sys.prefix to emulate the venv being active
+        sys.prefix=venv_short_path
+
+        pie.main(['test'])
+        out,err=capsys.readouterr()
+
+        # we expect that the PieVenv detected that it's already active and just executed the command in the pie_task file
+        assert pie_mock_cmd.cmds[0][0][0]=='blah'
+    finally:
+        sys.prefix=old_sys_prefix
+        if venv_path.exists(): venv_path.rmdir()
