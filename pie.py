@@ -25,10 +25,26 @@ __all__=['task','Parameter','OptionsParameter','options','cmd','cd','env','pip',
 WINDOWS=(os.name=='nt')
 PY3=(sys.version_info>=(3,0))
 
+
 # function for input (also so that we can mock it tests)
 INPUT_FN=input if PY3 else raw_input
-# function to execute a command - must emulate the subprocess call method and return an error code on failure
-CMD_FN=subprocess.call
+
+
+def DEFAULT_CMD_FN(c):
+    """The default cmd function using Popen and passing stdout and stderr through"""
+    return subprocess.call(c,shell=True)
+#     p=subprocess.Popen(c,shell=True,stdout=sys.stdout,stderr=sys.stderr)
+#     # TODO: is this useful? ,universal_newlines=True
+#     p.wait()
+#     return p.returncode
+
+def DRY_RUN_CMD_FN(c):
+    """Only prints the command that would be run, doesn't actually run it"""
+    print(c)
+    return 0
+
+# function to execute a command - can be overridden, must return an error code on failure
+CMD_FN=DEFAULT_CMD_FN
 
 
 
@@ -233,7 +249,7 @@ class CmdContextManager(object):
     def cmd(cls,c,i=None):
         if i is None: i=len(cls.context)
         if i>0: return cls.context[i-1].cmd(c)
-        errorcode=CMD_FN(c,shell=True)
+        errorcode=CMD_FN(c)
         if errorcode!=0:
             raise cls.CmdError(errorcode,c)
 
@@ -540,6 +556,9 @@ def parseArguments(args):
             elif arg=='-m':
                 parsed.append(ModuleName(args[i+1]))
                 i+=1
+            elif arg=='-n':
+                global CMD_FN
+                CMD_FN=DRY_RUN_CMD_FN
             elif arg=='-R':
                 parsed.append(CreatePieVenv())
                 parsed.append(UpdatePieVenv())
