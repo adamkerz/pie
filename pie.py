@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0d'
+__VERSION__='0.3.0e'
 
 
 import inspect
@@ -211,8 +211,11 @@ class CmdContextManager(object):
 
         with venv('venv/build'):
             cmd('python -m pip')
+
+    It also has a class variable `python_cmd` which must be set by any CmdContext that causes the instance of python being used to change.
     """
     context=[]
+    python_cmd=sys.executable
 
 
     class CmdError(Exception):
@@ -244,9 +247,10 @@ def cmd(c):
     return CmdContextManager.cmd(c)
 
 
-def pip(c,pythonCmd='python'):
+def pip(c,pythonCmd=None):
     """Runs a pip command"""
-    cmd('{} -m pip {}'.format(pythonCmd,c))
+    if pythonCmd is None: pythonCmd=CmdContextManager.python_cmd
+    cmd('"{}" -m pip {}'.format(pythonCmd,c))
 
 
 class CmdContext(object):
@@ -278,12 +282,22 @@ class venv(CmdContext):
     def __init__(self,path):
         self.path=os.path.abspath(path)
 
-    def create(self,extraArguments='',pythonCmd='python',py3=PY3):
+    def _binary_path(self,binary):
+        middle='\\Scripts\\' if WINDOWS else '/bin/'
+        return r'{}{}{}'.format(self.path,middle,binary)
+
+    def enter_hook(self):
+        self.old_python_cmd=CmdContextManager.python_cmd
+        CmdContextManager.python_cmd=self._binary_path('python')
+
+    def exit_hook(self):
+        CmdContextManager.python_cmd=self.old_python_cmd
+
+    def create(self,extraArguments='',pythonCmd=None,py3=PY3):
         """Creates a virutalenv by running the `pythonCmd` and adding `extraArguments` if required. `py3` is used to flag whether this python interpreter is py3 or not. Defaults to whatever the current python version is."""
-        if py3:
-            c=r'{} -m venv {} "{}"'.format(pythonCmd,extraArguments,self.path)
-        else:
-            c=r'{} -m virtualenv {} "{}"'.format(pythonCmd,extraArguments,self.path)
+        if pythonCmd is None: pythonCmd=CmdContextManager.python_cmd
+        venv_module='venv' if py3 else 'virtualenv'
+        c=r'"{}" -m {} {} "{}"'.format(pythonCmd,venv_module,extraArguments,self.path)
         cmd(c)
 
     def cmd(self,c):
@@ -292,9 +306,9 @@ class venv(CmdContext):
             # cmd.exe /C has real specific behaviour around quotes.
             # The below double quote syntax is valid because it strips the outside quotes.
             # The path to activate.bat must be quoted in case it contains spaces
-            c=r'''cmd /c ""{}\Scripts\activate.bat" && {}"'''.format(self.path,c)
+            c=r'''cmd /c ""{}" && {}"'''.format(self._binary_path('activate.bat'),c)
         else:
-            c=r'bash -c "source {}/bin/activate && {}"'.format(self.path,c)
+            c=r'bash -c "source "{}" && {}"'.format(self._binary_path('activate'),c)
         return CmdContextManager.cmd(c,self.contextPosition)
 
 
