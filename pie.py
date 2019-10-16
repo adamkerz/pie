@@ -15,8 +15,6 @@ import sys
 import traceback
 import types
 
-from builtins import str
-
 
 __all__=['task','Parameter','OptionsParameter','options','cmd','cd','env','pip','venv']
 
@@ -623,11 +621,11 @@ class PieVenv(object):
         import locale
         from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
 
-        # Start by getting prefix as unicode (note, str imported from builtins)
-        sys_prefix = str(sys.prefix)
+        # Start by getting prefix as unicode (it already is in PY3)
+        sys_prefix = sys.prefix if PY3 else unicode(sys.prefix)
 
         # long names on Windows (before Windows 10 v1607, without GP changes) require a prefix if longer than MAX_PATH
-        # just use the prefix everywhere for conveniance sake
+        # just use the prefix everywhere for convenience sake
         long_name_prefix = u'\\\\?\\'
         sys_prefix = sys_prefix if sys_prefix.startswith(long_name_prefix) else u'{}{}'.format(long_name_prefix, sys_prefix)
 
