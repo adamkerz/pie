@@ -17,6 +17,22 @@ def _remove_from_sys_path(*args):
                 break
 
 
+# helper functions
+_venv_module=lambda is_py3: 'venv' if is_py3 else 'virtualenv'
+_venv_bin_dir=lambda is_win,venv_path: venv_path/(r'Scripts' if is_win else 'bin')
+_venv_activate_cmd=lambda is_win,venv_path: _venv_bin_dir(is_win,venv_path)/(r'activate.bat' if is_win else 'activate')
+_venv_python_cmd=lambda is_win,venv_path: _venv_bin_dir(is_win,venv_path)/'python'
+
+
+@pytest.fixture(scope='session')
+def is_win():
+    return os.name=='nt'
+
+@pytest.fixture(scope='session')
+def is_py3():
+    return sys.version_info>=(3,0)
+
+
 @pytest.fixture(scope='function')
 def pie():
     """Makes sure pie is freshly imported from cwd, then removes cwd from the path to allow pie_tasks to be imported from wherever we choose"""

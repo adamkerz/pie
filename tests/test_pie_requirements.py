@@ -1,6 +1,9 @@
 import os
+import sys
 
 import pytest
+
+from .conftest import _venv_module,_venv_activate_cmd,_venv_python_cmd
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
@@ -12,38 +15,46 @@ def test_no_venv(pie,capsys,pie_tasks_path):
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
-def test_create_venv(pie,capsys,pie_tasks_path,pie_mock_cmd):
+def test_create_venv(pie,capsys,is_win,is_py3,pie_tasks_path,pie_mock_cmd):
     pie.main(['-R'])
     out,err=capsys.readouterr()
-    # TODO: improve checking, it's possible the wrong venv could be activated and we wouldn't detect it
-    assert len(pie_mock_cmd.cmds)==3
-    # TODO: more specific testing for py2/3
-    venv_path=os.path.join(os.getcwd(),'.venv-pie')
 
-    assert pie_mock_cmd.cmds[0][0][0]=='python -m virtualenv --system-site-packages "{}"'.format(venv_path) or pie_mock_cmd.cmds[0][0][0]=='python -m venv --system-site-packages "{}"'.format(venv_path)
-    assert pie_mock_cmd.cmds[1][0][0].endswith('python -m pip install -U pip"')
-    assert pie_mock_cmd.cmds[2][0][0].endswith('python -m pip install -r requirements.pie.txt"')
+    venv_path=pie_tasks_path/'.venv-pie'
+    venv_activate_cmd=_venv_activate_cmd(is_win,venv_path)
+    venv_python_cmd=_venv_python_cmd(is_win,venv_path)
+
+    assert len(pie_mock_cmd.cmds)==3
+    assert pie_mock_cmd.cmds[0][0][0]=='"{}" -m {} --system-site-packages "{}"'.format(sys.executable,_venv_module(is_py3),venv_path)
+    assert pie_mock_cmd.cmds[1][0][0].endswith('"{}" && "{}" -m pip install -U pip"'.format(venv_activate_cmd,venv_python_cmd))
+    assert pie_mock_cmd.cmds[2][0][0].endswith('"{}" && "{}" -m pip install -r requirements.pie.txt"'.format(venv_activate_cmd,venv_python_cmd))
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
-def test_update_venv(pie,capsys,pie_tasks_path,pie_mock_cmd):
+def test_update_venv(pie,capsys,is_win,pie_tasks_path,pie_mock_cmd):
     pie.main(['-r'])
     out,err=capsys.readouterr()
-    # TODO: improve checking, it's possible the wrong venv could be activated and we wouldn't detect it
+
+    venv_path=pie_tasks_path/'.venv-pie'
+    venv_activate_cmd=_venv_activate_cmd(is_win,venv_path)
+    venv_python_cmd=_venv_python_cmd(is_win,venv_path)
+
     assert len(pie_mock_cmd.cmds)==2
-    assert pie_mock_cmd.cmds[0][0][0].endswith('python -m pip install -U pip"')
-    assert pie_mock_cmd.cmds[1][0][0].endswith('python -m pip install -r requirements.pie.txt"')
+    assert pie_mock_cmd.cmds[0][0][0].endswith('"{}" && "{}" -m pip install -U pip"'.format(venv_activate_cmd,venv_python_cmd))
+    assert pie_mock_cmd.cmds[1][0][0].endswith('"{}" && "{}" -m pip install -r requirements.pie.txt"'.format(venv_activate_cmd,venv_python_cmd))
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
-def test_use_venv(pie,capsys,pie_tasks_path,pie_mock_cmd):
+def test_use_venv(pie,capsys,is_win,pie_tasks_path,pie_mock_cmd):
     venv_path=pie_tasks_path/'.venv-pie'
-    # TODO: make sure this is cleaned up after running, even if the task fails
-    if not venv_path.exists(): venv_path.mkdir()
-    pie.main(['test'])
-    out,err=capsys.readouterr()
-    # TODO: Windows only
-    assert len(pie_mock_cmd.cmds)==1
-    assert '.venv-pie\\Scripts\\activate.bat"' in pie_mock_cmd.cmds[0][0][0] or '.venv-pie/Scripts/activate' in pie_mock_cmd.cmds[0][0][0]
-    assert pie_mock_cmd.cmds[0][0][0].endswith('python pie.py test"')
-    venv_path.rmdir()
+    try:
+        if not venv_path.exists(): venv_path.mkdir()
+        pie.main(['test'])
+        out,err=capsys.readouterr()
+
+        venv_activate_cmd=_venv_activate_cmd(is_win,venv_path)
+        venv_python_cmd=_venv_python_cmd(is_win,venv_path)
+
+        assert len(pie_mock_cmd.cmds)==1
+        assert pie_mock_cmd.cmds[0][0][0].endswith('"{}" && python pie.py test"'.format(venv_activate_cmd,venv_python_cmd))
+    finally:
+        venv_path.rmdir()

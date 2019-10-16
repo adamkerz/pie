@@ -5,7 +5,7 @@ from pie import *
 
 @task
 def envContext():
-    e={'MY_VAL':'test','HOME':'something','COMPUTERNAME':None}
+    e={'MY_VAL':'test','HOME':'something','PATH':None}
 
     def _print_env():
         for k in e:
