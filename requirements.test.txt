@@ -1,2 +1,2 @@
 pytest==2.9.0
-pathlib==1.0.1
+pathlib==1.0.1; python_version < '3.4'
