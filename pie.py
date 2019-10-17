@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0e'
+__VERSION__='0.3.0f'
 
 
 import inspect
@@ -220,12 +220,10 @@ class CmdExecutor(object):
         if cls.print_cmd:
             print(c)
         if not cls.dry_run:
-            return subprocess.call(c,shell=True)
+            p=subprocess.Popen(c,shell=True,stdout=sys.stdout,stderr=sys.stderr,universal_newlines=True)
+            p.wait()
+            return p.returncode
         return 0
-    #     p=subprocess.Popen(c,shell=True,stdout=sys.stdout,stderr=sys.stderr)
-    #     # TODO: is this useful? ,universal_newlines=True
-    #     p.wait()
-    #     return p.returncode
 
     # function to execute a command - can be overridden, must return an error code on failure
     cmd_fn=DEFAULT_CMD_FN
