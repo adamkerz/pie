@@ -50,7 +50,7 @@ def pie_mock_cmd(pie):
     class MockCmd(object):
         def __init__(self,pie):
             self.cmds=[]
-            pie.CMD_FN=self.mock
+            pie.CmdExecutor.cmd_fn=self.mock
 
         def mock(self,*args,**kwargs):
             self.cmds.append((args,kwargs))
@@ -65,7 +65,7 @@ def pie_mock_input(pie):
         def __init__(self,pie):
             self.input_str=None
             self.ret=None
-            pie.INPUT_FN=self.mock
+            pie.Parameter.INPUT_FN=self.mock
 
         def set_return(self,ret):
             self.ret=ret
@@ -81,7 +81,7 @@ def pie_mock_input(pie):
 def pie_input_forbidden(pie):
     def input_forbidden(s):
         raise Exception('Input forbidden')
-    pie.INPUT_FN=input_forbidden
+    pie.Parameter.INPUT_FN=input_forbidden
 
 
 @pytest.fixture(scope='function')

@@ -24,28 +24,6 @@ WINDOWS=(os.name=='nt')
 PY3=(sys.version_info>=(3,0))
 
 
-# function for input (also so that we can mock it tests)
-INPUT_FN=input if PY3 else raw_input
-
-
-def DEFAULT_CMD_FN(c):
-    """The default cmd function using Popen and passing stdout and stderr through"""
-    return subprocess.call(c,shell=True)
-#     p=subprocess.Popen(c,shell=True,stdout=sys.stdout,stderr=sys.stderr)
-#     # TODO: is this useful? ,universal_newlines=True
-#     p.wait()
-#     return p.returncode
-
-def DRY_RUN_CMD_FN(c):
-    """Only prints the command that would be run, doesn't actually run it"""
-    print(c)
-    return 0
-
-# function to execute a command - can be overridden, must return an error code on failure
-CMD_FN=DEFAULT_CMD_FN
-
-
-
 # ----------------------------------------
 # configuration
 # ----------------------------------------
@@ -165,6 +143,9 @@ def importTasks():
 class Parameter(object):
     """Parameter base class for specifying how to handle parameters for tasks"""
     NO_VALUE=object()
+    # function for input (also so that we can mock it tests) - TODO: move this to some more generic usable place - InputGetter?
+    INPUT_FN=input if PY3 else raw_input
+
 
     def __init__(self,name,prompt=None,inputFn=NO_VALUE,conversionFn=lambda o:o,use_default=False):
         """
@@ -177,7 +158,7 @@ class Parameter(object):
         """
         self.name=name
         self.prompt=prompt
-        self.inputFn=inputFn if inputFn is not self.NO_VALUE else INPUT_FN
+        self.inputFn=inputFn if inputFn is not self.NO_VALUE else self.INPUT_FN
         self.conversionFn=conversionFn
         self.use_default=use_default
 
@@ -216,9 +197,40 @@ class OptionsParameter(Parameter):
         setattr(options,self.name,v)
         return v
 
+
+
 # ----------------------------------------
 # operations
 # ----------------------------------------
+class CmdExecutor(object):
+    """
+    The CmdExecutor (singleton) actually executes a command.
+
+    Attributes:
+     - print_cmd: prints the command that will be executed
+     - dry_run: does not actually run the command, returns an error code of 0, assuming it passed
+     - cmd_fun: the function that runs the command
+    """
+    print_cmd=False
+    dry_run=False
+
+    @classmethod
+    def DEFAULT_CMD_FN(cls,c):
+        """The default cmd function using Popen and passing stdout and stderr through"""
+        if cls.print_cmd:
+            print(c)
+        if not cls.dry_run:
+            return subprocess.call(c,shell=True)
+        return 0
+    #     p=subprocess.Popen(c,shell=True,stdout=sys.stdout,stderr=sys.stderr)
+    #     # TODO: is this useful? ,universal_newlines=True
+    #     p.wait()
+    #     return p.returncode
+
+    # function to execute a command - can be overridden, must return an error code on failure
+    cmd_fn=DEFAULT_CMD_FN
+
+
 class CmdContextManager(object):
     """
     The CmdContextManager (singleton) is used to keep track of what context a command is being executed within:
@@ -247,7 +259,7 @@ class CmdContextManager(object):
     def cmd(cls,c,i=None):
         if i is None: i=len(cls.context)
         if i>0: return cls.context[i-1].cmd(c)
-        errorcode=CMD_FN(c)
+        errorcode=CmdExecutor.cmd_fn(c)
         if errorcode!=0:
             raise cls.CmdError(errorcode,c)
 
@@ -541,7 +553,7 @@ def parseArguments(args):
         arg=args[i]
         if arg.startswith('-'):
             # although we say that these options are check that incompatible options aren't used together
-            if arg=='-v':
+            if arg=='-V':
                 parsed.append(Version())
             elif arg=='-h':
                 parsed.append(Help())
@@ -554,9 +566,10 @@ def parseArguments(args):
             elif arg=='-m':
                 parsed.append(ModuleName(args[i+1]))
                 i+=1
+            elif arg=='-v':
+                CmdExecutor.print_cmd=True
             elif arg=='-n':
-                global CMD_FN
-                CMD_FN=DRY_RUN_CMD_FN
+                CmdExecutor.dry_run=True
             elif arg=='-R':
                 parsed.append(CreatePieVenv())
                 parsed.append(UpdatePieVenv())
