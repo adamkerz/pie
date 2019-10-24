@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0f'
+__VERSION__='0.3.0g'
 
 
 import inspect
@@ -416,6 +416,16 @@ class Version(Argument):
         return 'Version: {}'.format(__VERSION__)
 
 
+class Verbose(Argument):
+    def execute(self):
+        CmdExecutor.print_cmd=True
+
+
+class DryRun(Argument):
+    def execute(self):
+        CmdExecutor.dry_run=True
+
+
 class CreatePieVenv(Argument):
     def execute(self):
         pv=PieVenv()
@@ -457,6 +467,7 @@ class CreateBatchFile(Argument):
                 fout.write('unset PIE_OLD_PYTHONHOME\n')
                 fout.write('export PATH=$PIE_OLD_PATH\n')
                 fout.write('unset PIE_OLD_PATH\n')
+            # TODO: set exec perms
 
 
 class ListTasks(Argument):
@@ -478,11 +489,11 @@ class ListTasks(Argument):
 
 class Help(Argument):
     def execute(self):
-        print('Usage:    pie [ -v | -h | -b | -l | -L | m <name> ]')
+        print('Usage:    pie [ -V | -h | -b | -l | -L | -m <name> | -R | -r | -n | -v ]')
         print('          pie [ -o <name>=<value> | <task>[(<args>...)] ]...')
         print('Version:  v{}'.format(__VERSION__))
         print('')
-        print('  -v      Display version')
+        print('  -V      Display version')
         print('  -h      Display this help')
         print('  -b      Create batch file shortcut')
         print('  -l      List available tasks with description')
@@ -490,6 +501,8 @@ class Help(Argument):
         print('  -m <n>  Change name of the pie_tasks module to import')
         print('  -R      Creates a .venv-pie venv using requirements.pie.txt')
         print('  -r      Updates the .venv-pie venv using requirements.pie.txt')
+        print('  -n      Dry run; don\'t actually execute the commands')
+        print('  -v      Verbose output')
         print('  -o      Sets an option with name to value')
         print('  <task>  Runs a task passing through arguments if required')
         print('')
@@ -565,9 +578,9 @@ def parseArguments(args):
                 parsed.append(ModuleName(args[i+1]))
                 i+=1
             elif arg=='-v':
-                CmdExecutor.print_cmd=True
+                parsed.append(Verbose())
             elif arg=='-n':
-                CmdExecutor.dry_run=True
+                parsed.append(DryRun())
             elif arg=='-R':
                 parsed.append(CreatePieVenv())
                 parsed.append(UpdatePieVenv())
