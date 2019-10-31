@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0g'
+__VERSION__='0.3.0h'
 
 
 import inspect
@@ -317,12 +317,26 @@ class venv(CmdContext):
     def exit_hook(self):
         CmdContextManager.python_cmd=self.old_python_cmd
 
+    def exists(self):
+        return os.path.isdir(self.path)
+
     def create(self,extraArguments='',pythonCmd=None,py3=PY3):
         """Creates a virutalenv by running the `pythonCmd` and adding `extraArguments` if required. `py3` is used to flag whether this python interpreter is py3 or not. Defaults to whatever the current python version is."""
         if pythonCmd is None: pythonCmd=CmdContextManager.python_cmd
         venv_module='venv' if py3 else 'virtualenv'
         c=r'"{}" -m {} {} "{}"'.format(pythonCmd,venv_module,extraArguments,self.path)
         cmd(c)
+
+    def is_activated(self):
+        return self._get_sys_prefix().endswith(self.path)
+
+    def pip_update(self):
+        with self:
+            pip('install -U pip')
+
+    def pip_install_requirements(self,requirements_file='requirements.txt'):
+        with self:
+            pip('install -r "{}"'.format(requirements_file))
 
     def cmd(self,c):
         """Runs the command `c` in this virtualenv."""
@@ -334,6 +348,54 @@ class venv(CmdContext):
         else:
             c=r'bash -c "source "{}" && {}"'.format(self._binary_path('activate'),c)
         return CmdContextManager.cmd(c,self.contextPosition)
+
+    def destroy(self):
+        if self.exists():
+            shutil.rmtree(self.path)
+
+    def _get_sys_prefix(self):
+        if not WINDOWS:
+            return sys.prefix
+
+        # On Windows, running via activate.bat, sys.prefix is converted to short-name format.
+        # In order to know the sys.prefix path, we need to ensure it's converted back to long name format.
+        import locale
+        from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
+
+        # Start by getting prefix as unicode (it already is in PY3)
+        sys_prefix = sys.prefix if PY3 else unicode(sys.prefix)
+
+        # long names on Windows (before Windows 10 v1607, without GP changes) require a prefix if longer than MAX_PATH
+        # just use the prefix everywhere for convenience sake
+        long_name_prefix = u'\\\\?\\'
+        sys_prefix = sys_prefix if sys_prefix.startswith(long_name_prefix) else u'{}{}'.format(long_name_prefix, sys_prefix)
+
+        # find out how long the long name path is
+        sys_prefix_chars = windll.kernel32.GetLongPathNameW(sys_prefix, None, 0)
+
+        # if we have a char length return, the long name path can be retrieved
+        if sys_prefix_chars:
+            # create a buffer based on the char length to hold the long name
+            sys_prefix_long_name_buffer = create_unicode_buffer(sys_prefix_chars)
+
+            # get the long name, inside an if statement to handle the (unlikely) event that the path is deleted
+            # between the above call and now
+            if windll.kernel32.GetLongPathNameW(sys_prefix, sys_prefix_long_name_buffer, sys_prefix_chars):
+                # get the value and remove the prefix
+                sys_prefix = sys_prefix_long_name_buffer.value
+                if sys_prefix.startswith(long_name_prefix):
+                    sys_prefix = sys_prefix[len(long_name_prefix):]
+                return sys_prefix
+
+        # check to see if a Windows error was fired
+        e = GetLastError()
+        error_template = u'Failed to get long name for sys.prefix ({}): {{}}'.format(sys.prefix)
+        if e:
+            formatted_error = FormatError(e).decode(locale.getpreferredencoding(), 'replace')
+            raise WindowsError(e, error_template.format(formatted_error))
+
+        # if no Windows error, who knows what happend, fail
+        raise Exception(error_template.format('unknown error'))
 
 
 class cd(CmdContext):
@@ -610,75 +672,27 @@ def parseArguments(args):
 # ----------------------------------------
 # pie venv
 # ----------------------------------------
-class PieVenv(object):
+class PieVenv(venv):
     PIE_REQUIREMENTS='requirements.pie.txt'
     PIE_VENV='.venv-pie'
+
+    def __init__(self):
+        super(PieVenv,self).__init__(self.PIE_VENV)
 
     def requirements_exists(self):
         return os.path.isfile(self.PIE_REQUIREMENTS)
 
-    def exists(self):
-        return os.path.isdir(self.PIE_VENV)
-
-    def is_activated(self):
-        return self._get_sys_prefix().endswith(self.PIE_VENV)
-
     def create(self):
-        venv(self.PIE_VENV).create('--system-site-packages')
+        super(PieVenv,self).create('--system-site-packages')
 
     def update(self):
-        with venv(self.PIE_VENV):
-            pip('install -U pip')
-            pip('install -r {}'.format(self.PIE_REQUIREMENTS))
+        self.pip_update()
+        self.pip_install_requirements(self.PIE_REQUIREMENTS)
 
     def run_pie(self,args):
         with venv(self.PIE_VENV):
             r=cmd(r'python pie.py {}'.format(' '.join(args)))
         return r
-
-    def _get_sys_prefix(self):
-        if not WINDOWS:
-            return sys.prefix
-
-        # On Windows, running via activate.bat, sys.prefix is converted to short-name format.
-        # In order to know the sys.prefix path, we need to ensure it's converted back to long name format.
-        import locale
-        from ctypes import create_unicode_buffer, FormatError, GetLastError, windll
-
-        # Start by getting prefix as unicode (it already is in PY3)
-        sys_prefix = sys.prefix if PY3 else unicode(sys.prefix)
-
-        # long names on Windows (before Windows 10 v1607, without GP changes) require a prefix if longer than MAX_PATH
-        # just use the prefix everywhere for convenience sake
-        long_name_prefix = u'\\\\?\\'
-        sys_prefix = sys_prefix if sys_prefix.startswith(long_name_prefix) else u'{}{}'.format(long_name_prefix, sys_prefix)
-
-        # find out how long the long name path is
-        sys_prefix_chars = windll.kernel32.GetLongPathNameW(sys_prefix, None, 0)
-
-        # if we have a char length return, the long name path can be retrieved
-        if sys_prefix_chars:
-            # create a buffer based on the char length to hold the long name
-            sys_prefix_long_name_buffer = create_unicode_buffer(sys_prefix_chars)
-
-            # get the long name, inside an if statement to handle the (unlikely) event that the path is deleted
-            # between the above call and now
-            if windll.kernel32.GetLongPathNameW(sys_prefix, sys_prefix_long_name_buffer, sys_prefix_chars):
-                # get the value and remove the prefix
-                sys_prefix = sys_prefix_long_name_buffer.value
-                if sys_prefix.startswith(long_name_prefix):
-                    sys_prefix = sys_prefix[len(long_name_prefix):]
-                return sys_prefix
-
-        # check to see if a Windows error was fired
-        e = GetLastError()
-        error_template = u'Failed to get long name for sys.prefix ({}): {{}}'.format(sys.prefix)
-        if e:
-            formatted_error = FormatError(e).decode(locale.getpreferredencoding(), 'replace')
-            raise WindowsError(e, error_template.format(formatted_error))
-
-        # if no Windows error, who knows what happend, fail
-        raise Exception(error_template.format('unknown error'))
 
 
 

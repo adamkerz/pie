@@ -26,7 +26,7 @@ def test_create_venv(pie,capsys,is_win,is_py3,pie_tasks_path,pie_mock_cmd):
     assert len(pie_mock_cmd.cmds)==3
     assert pie_mock_cmd.cmds[0][0][0]=='"{}" -m {} --system-site-packages "{}"'.format(sys.executable,_venv_module(is_py3),venv_path)
     assert pie_mock_cmd.cmds[1][0][0].endswith('"{}" && "{}" -m pip install -U pip"'.format(venv_activate_cmd,venv_python_cmd))
-    assert pie_mock_cmd.cmds[2][0][0].endswith('"{}" && "{}" -m pip install -r requirements.pie.txt"'.format(venv_activate_cmd,venv_python_cmd))
+    assert pie_mock_cmd.cmds[2][0][0].endswith('"{}" && "{}" -m pip install -r "requirements.pie.txt""'.format(venv_activate_cmd,venv_python_cmd))
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
@@ -40,7 +40,7 @@ def test_update_venv(pie,capsys,is_win,pie_tasks_path,pie_mock_cmd):
 
     assert len(pie_mock_cmd.cmds)==2
     assert pie_mock_cmd.cmds[0][0][0].endswith('"{}" && "{}" -m pip install -U pip"'.format(venv_activate_cmd,venv_python_cmd))
-    assert pie_mock_cmd.cmds[1][0][0].endswith('"{}" && "{}" -m pip install -r requirements.pie.txt"'.format(venv_activate_cmd,venv_python_cmd))
+    assert pie_mock_cmd.cmds[1][0][0].endswith('"{}" && "{}" -m pip install -r "requirements.pie.txt""'.format(venv_activate_cmd,venv_python_cmd))
 
 
 @pytest.mark.parametrize('pie_tasks_path',['pie_requirements'],indirect=['pie_tasks_path'])
