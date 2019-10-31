@@ -10,6 +10,7 @@ __VERSION__='0.3.0h'
 import inspect
 import os
 import re
+import shutil
 import subprocess
 import sys
 import traceback
