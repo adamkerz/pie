@@ -1,16 +1,16 @@
 """
 Extension module for PIE that provides unix specific shortcuts.
 """
-__VERSION__='0.0.1'
+__VERSION__='0.0.2'
 
 import pie
 
 
 def cmd(c,use_sudo=False):
-    sudo(c) if use_sudo else pie.cmd(c)
+    return sudo(c) if use_sudo else pie.cmd(c)
 
 def sudo(c):
-    pie.cmd('sudo {}'.format(c))
+    return pie.cmd('sudo {}'.format(c))
 
 
 def set_permissions(p,mode=None,owner=None,group=None,use_sudo=False):
