@@ -1,7 +1,7 @@
 """
 Extension module for PIE that provides a powershell context to run commands within a local or remote powershell session.
 """
-__VERSION__='0.0.3'
+__VERSION__='0.0.4'
 
 
 import base64
