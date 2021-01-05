@@ -1,6 +1,9 @@
 """
 Python3.6+ only
 """
+__VERSION__='0.0.1'
+
+
 from pie import *
 
 
