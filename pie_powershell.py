@@ -62,7 +62,7 @@ class powershell(CmdContext):
             c=self._buildCmd()
             print('Executing powershell code:\n'+c)
             s=base64.b64encode(c.encode('utf-16le'))
-            c='powershell -EncodedCommand {}'.format(s)
+            c='powershell -EncodedCommand {}'.format(s.decode('utf8'))
             CmdContextManager.cmd(c,self.contextPosition)
         else:
             print('An error occurred, not running powershell commands')
