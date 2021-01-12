@@ -60,12 +60,12 @@ class DockerCompose:
 
         def cmd(self,compose_cmd,compose_options=None,options=None,container_cmd=''):
             options=_make_list_parameter_safe(options)
-            options.append(self.service_name)
+            options.append(self.name)
             options.append(container_cmd)
             return self.compose_obj.cmd(compose_cmd,compose_options=compose_options,options=options)
 
         def build(self,compose_options=None,options=None):
-            return self.compose_obj.build(self.service_name,compose_options=compose_options,options=options)
+            return self.compose_obj.build(self.name,compose_options=compose_options,options=options)
 
         def up(self,compose_options=None,options=None):
             options=_make_list_parameter_safe(options)
