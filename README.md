@@ -65,3 +65,44 @@ Use???
     class Lookup:
         def __init__(self,**entries):
             self.__dict__.update(entries)
+
+
+
+
+
+
+New text:
+
+Are you sick of typing
+
+python3.6 -m venv .venv
+.venv\scripts\activate.bat | . .venv/bin/activate
+pip install -r requirements.txt
+python manage.py generate_swagger
+
+
+Why not code this in an OS agnostic way:
+
+python3.6 pie.py create_venv
+python3.6 pie.py generate_swagger
+
+key_values
+# windows/linux aliases
+
+or `pie create_venv`
+
+
+# autocomplete
+
+
+> pie configurable --my_string=with --params=3 next_task
+
+
+
+pie_core:
+cmd, env, py_venv
+
+pie_docker
+pie_docker_compose
+pie_powershell
+pie_ssh? - depends on binary package

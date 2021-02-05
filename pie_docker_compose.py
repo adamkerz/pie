@@ -1,10 +1,20 @@
 """
 Python3.6+ only
 """
-__VERSION__='0.0.2'
+__VERSION__='0.0.3'
 
+
+from pathlib import Path
 
 from pie import *
+
+
+def _path_or_list_to_list(s):
+    if isinstance(s,str) or isinstance(s,Path):
+        return [s]
+    elif isinstance(s,(list,tuple)):
+        return list(s)
+    return []
 
 
 def _make_list_parameter_safe(ls):
@@ -12,19 +22,19 @@ def _make_list_parameter_safe(ls):
 
 
 class DockerCompose:
-    def __init__(self,docker_compose_filename,project_name=None):
-        self.docker_compose_filename=docker_compose_filename
+    def __init__(self,docker_compose_filenames=None,project_name=None):
+        self.docker_compose_filenames=_path_or_list_to_list(docker_compose_filenames)
         self.project_name=project_name
 
 
     def cmd(self,compose_cmd,compose_options=None,options=None):
         """
         Builds a command and runs it like this:
-        docker-compose -f <self.docker_compose_filename> [-p <self.project_name>] <compose_options> <compose_cmd> <cmd_options>
+        docker-compose -f <self.docker_compose_filenames...> [-p <self.project_name>] <compose_options> <compose_cmd> <cmd_options>
         """
         compose_options=_make_list_parameter_safe(compose_options)
         options=_make_list_parameter_safe(options)
-        c_ops=[f'-f {self.docker_compose_filename}']
+        c_ops=[f'-f {fn}' for fn in self.docker_compose_filenames]
         if self.project_name:
             c_ops.append(f'-p {self.project_name}')
         c_ops.extend(compose_options)
