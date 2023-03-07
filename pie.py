@@ -4,7 +4,7 @@ pie - Python Interactive Executor
 Enables a user to execute predefined tasks that may accept parameters and options from the command line without any other required packages.
 Great for bootstrapping a development environment, and then interacting with it.
 """
-__VERSION__='0.3.0i'
+__VERSION__='0.4.0'
 
 
 import inspect
@@ -64,7 +64,7 @@ class TaskWrapper(object):
 
     def __call__(self,*args,**kwargs):
         # get arg names and defaults from the function
-        (arg_names,varargs,keywords,defaults)=inspect.getargspec(self.fn)
+        (arg_names,varargs,keywords,defaults,_,_,_)=inspect.getfullargspec(self.fn)
         # map defaults to an arg name
         defaults=dict(zip(arg_names[len(arg_names)-len(defaults):],defaults)) if defaults is not None else {}
         # map provided values to an arg name
